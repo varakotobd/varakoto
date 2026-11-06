@@ -1,0 +1,31 @@
+Vara Koto: extra GitHub files for Android
+
+You ALREADY uploaded the matching index.html to the ROOT of your GitHub repo:
+https://github.com/varakotobd/varakoto
+
+Extract this ZIP and upload ONLY these four files to the REPOSITORY ROOT:
+- worker.js
+- schema.sql
+- wrangler.toml
+- package.json
+
+The resulting repository root should contain:
+README.md
+index.html
+worker.js
+schema.sql
+wrangler.toml
+package.json
+
+IMPORTANT: Before deploying, update wrangler.toml database_id from
+REPLACE_WITH_D1_DATABASE_ID to the actual database ID from Cloudflare D1.
+
+Then verify the database schema. If tables are absent, run
+npm run db:setup via authenticated Wrangler with access to the existing D1.
+
+Set ADMIN_TOKEN and RATE_LIMIT_SALT as Cloudflare Worker secrets, not in GitHub.
+No secrets should be uploaded into a public GitHub repository.
+
+Deploy with npm run deploy from a connected build or Wrangler terminal.
+
+This upload does not deploy the app by itself.

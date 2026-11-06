@@ -1,0 +1,14 @@
+name = "varakoto"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "varakoto-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
