@@ -40,10 +40,19 @@ jobs:
           console.log('D1 database health check passed.');
           const estimates = await get('/api/estimates?origin=Savar&destination=Nabinagar');
           const data = await estimates.json();
-          if (!estimates.ok || !Array.isArray(data.vehicles) || data.vehicles.length !== 4) {
+          if (!estimates.ok || !Array.isArray(data.vehicles) || data.vehicles.length !== 2) {
             throw new Error('Vehicle-aware estimate endpoint failed: ' + JSON.stringify(data));
           }
-          console.log('All four local vehicle types are supported. Verified-fare availability depends on real reports.');
+          console.log('Only rickshaw and auto/leguna are offered. Local fares have explicit sources.');
+          const guideResponse = await get('/api/estimates?origin='+encodeURIComponent('সাভার নিউ মার্কেট')+'&destination='+encodeURIComponent('চাপাইন'));
+          const guide = await guideResponse.json();
+          if (!guideResponse.ok || guide.sample_route !== 'newmarket_chapain' ||
+              guide.vehicles.find(x => x.id === 'rickshaw')?.reference?.fare !== 20 ||
+              guide.vehicles.find(x => x.id === 'auto')?.reference?.fare !== 10 ||
+              guide.vehicles.find(x => x.id === 'auto')?.reference?.basis !== 'per_person') {
+            throw new Error('Owner-supplied Savar New Market → Chapain fares not available: ' + JSON.stringify(guide));
+          }
+          console.log('Owner-supplied Savar sample fares live: Rickshaw Tk20; auto Tk10/person.');
           for (const [name, path] of [
             ['Photon autocomplete', '/api/places?q=Dhaka'],
             ['OSRM road distance', '/api/route?origin_lat=23.8103&origin_lon=90.4125&destination_lat=23.819&destination_lon=90.418']
