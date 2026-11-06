@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:setup": "wrangler d1 execute varakoto-db --remote --file=./schema.sql"
+    "db:setup": "wrangler d1 execute varakoto-db --remote --file=./schema.sql",
+    "test": "node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
