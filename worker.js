@@ -5,12 +5,16 @@ import about from './about.html';
 import articleCox from './articles/coxsbazar.html';
 import articleSreemangal from './articles/sreemangal.html';
 import articleRatargul from './articles/ratargul.html';
+import articleSavar from './articles/savar-local.html';
+import articleFares from './articles/local-fares.html';
 
 const TRANSPORT = ['rickshaw', 'auto'];
 const ARTICLE_PAGES = {
   '/travel-blog/coxsbazar': articleCox,
   '/travel-blog/sreemangal': articleSreemangal,
-  '/travel-blog/ratargul': articleRatargul
+  '/travel-blog/ratargul': articleRatargul,
+  '/travel-blog/savar-local': articleSavar,
+  '/travel-blog/local-fares': articleFares
 };
 const MODES = { rickshaw: 'রিকশা', auto: 'ব্যাটারি অটো / লেগুনা' };
 const BD = { minLat: 20, maxLat: 27, minLon: 88, maxLon: 93 };
