@@ -1,0 +1,30 @@
+name: One-time public hostname diagnostics
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve and access both proposed Cloudflare URLs
+        run: |
+          node --input-type=module <<'JS'
+          import dns from 'node:dns/promises';
+          for (const host of ['varakoto.vkbd.workers.dev','varakoto.rickshaw.workers.dev']) {
+            try {
+              const a = await dns.lookup(host,{all:true});
+              console.log('DOMAIN '+host+' RESOLVES '+JSON.stringify(a));
+            } catch (error) {
+              console.log('DOMAIN '+host+' DNS_ERROR '+error.code+' '+error.message);
+            }
+            try {
+              const url='https://'+host+'/api/health';
+              const response=await fetch(url,{signal:AbortSignal.timeout(7000)});
+              console.log('HTTP '+host+' '+response.status+' '+(await response.text()).slice(0,180));
+            } catch (error) {
+              console.log('HTTP '+host+' ERROR '+error.message);
+            }
+          }
+          JS
