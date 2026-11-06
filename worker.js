@@ -64,7 +64,7 @@ export default {
           ...security,
           'content-type': 'text/html; charset=utf-8',
           'cache-control': 'public, max-age=120',
-          'content-security-policy': "default-src 'self'; script-src 'self' https://unpkg.com 'unsafe-inline'; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+          'content-security-policy': "default-src 'self'; script-src 'self' https://unpkg.com 'unsafe-inline'; style-src 'self' https://unpkg.com 'unsafe-inline'; img-src 'self' data: https://*.tile.openstreetmap.org https://*.wordpress.com https://*.wp.com; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
         };
         if (isWorkersDomain) headers['x-robots-tag'] = 'noindex, nofollow';
         return new Response(request.method === 'HEAD' ? null : html, { headers });
