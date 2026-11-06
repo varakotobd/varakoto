@@ -1,13 +1,77 @@
 import html from './index.html';
 
-const TRANSPORT = ['rickshaw', 'auto', 'cng', 'easybike'];
-const MODES = {
-  rickshaw: 'রিকশা',
-  auto: 'ব্যাটারি অটো',
-  cng: 'সিএনজি',
-  easybike: 'ইজিবাইক'
-};
+const TRANSPORT = ['rickshaw', 'auto'];
+const MODES = { rickshaw: 'রিকশা', auto: 'ব্যাটারি অটো / লেগুনা' };
 const BD = { minLat: 20, maxLat: 27, minLon: 88, maxLon: 93 };
+
+// Fares explicitly supplied by the project owner. No journey dates were provided.
+// These are route references, NOT government tariffs or independently verified rides.
+const LANDMARKS = [
+  { id:'savar_new_market', name:'সাভার নিউ মার্কেট', aliases:['savar new market','new market','newmarket','সাভার নিউ মার্কেট','সাভার নিউমার্কেট','নিউ মার্কেট','নিউমার্কেট'], lat:23.85068, lon:90.25932 },
+  { id:'chapain', name:'চাপাইন, সাভার', aliases:['chapain','চাপাইন','চাপাই','চাপাইন সাভার'], lat:null, lon:null },
+  { id:'dewga', name:'দেওগা বাজার, সাভার', aliases:['dewga bazar','dewga bazaar','dewga','deoga bazar','deoga bazaar','দেওগা বাজার','দেওগাঁ বাজার','দেউগা বাজার','দেওগা'], lat:null, lon:null },
+  { id:'crp', name:'সিআরপি, সাভার', aliases:['crp','crp savar','centre for the rehabilitation of the paralysed','সিআরপি','সিআরপি সাভার'], lat:null, lon:null },
+  { id:'radio_colony', name:'রেডিও কলোনি, সাভার', aliases:['radio colony','radio colony savar','রেডিও কলোনি','রেডিও কলোনী'], lat:null, lon:null },
+  { id:'shyamoli_square', name:'শ্যামলী স্কয়ার, ঢাকা', aliases:['shyamoli square','shyamoli square dhaka','শ্যামলী স্কয়ার','শ্যামলী স্কয়ার'], lat:23.77445, lon:90.3654 },
+  { id:'shia_masjid', name:'শিয়া মসজিদ, ঢাকা', aliases:['shia masjid','shia mosque','shia masjid dhaka','শিয়া মসজিদ','শিয়া মসজিদ','শিয়া মসজিদ ঢাকা'], lat:null, lon:null }
+];
+const ROUTE_GUIDES = [
+  {key:'newmarket_chapain',from:'savar_new_market',to:'chapain',entries:[['rickshaw',20,'per_ride','rickshaw'],['auto',10,'per_person','battery_auto']]},
+  {key:'newmarket_dewga',from:'savar_new_market',to:'dewga',note:'নিউ মার্কেট থেকে দেওগা বাজার ধরে নেওয়া হয়েছে; শুরুর স্থান নিশ্চিত করা প্রয়োজন।',entries:[['rickshaw',40,'per_ride','rickshaw'],['auto',20,'per_person','battery_auto']]},
+  {key:'chapain_crp',from:'chapain',to:'crp',entries:[['rickshaw',20,'per_ride','rickshaw']]},
+  {key:'chapain_radio_colony',from:'chapain',to:'radio_colony',entries:[['rickshaw',30,'per_ride','rickshaw']]},
+  {key:'shyamoli_shia',from:'shyamoli_square',to:'shia_masjid',entries:[['rickshaw',30,'per_ride','rickshaw'],['auto',10,'per_person','leguna']]}
+];
+function landmarkOf(value) {
+  const val=normalize(value).replace(/[.,;]+/g,' ').replace(/\s+/g,' ').trim();
+  if (!val) return null;
+  // Avoid equating Dhaka New Market with the separate Savar New Market.
+  if ((val === 'new market dhaka' || val === 'নিউ মার্কেট ঢাকা') && !val.includes('savar')) return null;
+  for (const p of LANDMARKS) {
+    for (const name of p.aliases) {
+      const alias=normalize(name);
+      if (val===alias || val.startsWith(alias+' ') || val.startsWith(alias+',') ||
+          (val.length < 60 && alias.length > 5 && val.endsWith(' '+alias))) return p;
+    }
+  }
+  return null;
+}
+function guideFor(origin, destination) {
+  const a=landmarkOf(origin),b=landmarkOf(destination);
+  if(!a||!b)return null;
+  return ROUTE_GUIDES.find(r=>r.from===a.id&&r.to===b.id)||null;
+}
+let guideReady=false;
+async function ensureGuideSchema(env) {
+  if(guideReady)return;
+  await env.DB.prepare(
+    "CREATE TABLE IF NOT EXISTS curated_fares("+
+    "route_key TEXT NOT NULL, vehicle_type TEXT NOT NULL, fare INTEGER NOT NULL,"+
+    "fare_basis TEXT NOT NULL, vehicle_variant TEXT NOT NULL,"+
+    "source_note TEXT NOT NULL DEFAULT '', PRIMARY KEY(route_key,vehicle_type))"
+  ).run();
+  for(const r of ROUTE_GUIDES){
+    for(const [mode,fare,basis,variant] of r.entries){
+      await env.DB.prepare(
+        "INSERT INTO curated_fares(route_key,vehicle_type,fare,fare_basis,vehicle_variant,source_note) "+
+        "VALUES(?,?,?,?,?,?) ON CONFLICT(route_key,vehicle_type) DO NOTHING"
+      ).bind(r.key,mode,fare,basis,variant,r.note||'').run();
+    }
+  }
+  guideReady=true;
+}
+function publicGuideRoutes() {
+  const byId = new Map(LANDMARKS.map(x=>[x.id,x]));
+  return ROUTE_GUIDES.map(r=>({
+    key:r.key,
+    origin:byId.get(r.from).name,
+    destination:byId.get(r.to).name,
+    origin_location:byId.get(r.from),
+    destination_location:byId.get(r.to),
+    note:r.note||null
+  }));
+}
+
 const commonHeaders = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
@@ -83,6 +147,16 @@ async function ensureTransportSchema(env) {
       if (!/duplicate column name/i.test(String(err?.message ?? err))) throw err;
     }
   }
+  const latest = await env.DB.prepare('PRAGMA table_info(fare_reports)').all();
+  for (const [name, sql] of [
+    ['fare_basis', "ALTER TABLE fare_reports ADD COLUMN fare_basis TEXT"],
+    ['vehicle_variant', "ALTER TABLE fare_reports ADD COLUMN vehicle_variant TEXT"]
+  ]) {
+    if (!(latest.results||[]).some(c=>c.name===name)) {
+      try { await env.DB.prepare(sql).run(); }
+      catch(err){ if(!/duplicate column name/i.test(String(err?.message||err))) throw err; }
+    }
+  }
   migrationFinished = true;
 }
 function summary(reports) {
@@ -102,7 +176,17 @@ const placeNames = properties => {
 };
 async function places(url) {
   const query = String(url.searchParams.get('q') || '').trim().replace(/\s+/g, ' ');
-  if (query.length < 3 || query.length > 80) return json({ locations: [] });
+  if (query.length < 2 || query.length > 80) return json({ locations: [] });
+  const term=normalize(query);
+  const local=LANDMARKS.filter(p=>p.aliases.some(a=>{
+    const alias=normalize(a);
+    return alias.includes(term)||term.includes(alias);
+  })).slice(0,5).map(p=>({
+    name:p.name,label:p.name,lat:p.lat,lon:p.lon,local:true,
+    // null coordinates mean that a pin has not been independently established.
+    requires_map_pin:p.lat==null
+  }));
+  if(query.length<3)return json({ locations:local, attribution:'Local route directory' });
   const upstream = new URL('https://photon.komoot.io/api/');
   upstream.searchParams.set('q', query);
   upstream.searchParams.set('limit', '7');
@@ -112,10 +196,11 @@ async function places(url) {
     cf: { cacheTtl: 1800, cacheEverything: true },
     signal: AbortSignal.timeout(8000)
   });
-  if (!response.ok) return json({ locations: [], error: 'স্থান খোঁজার সেবা আপাতত পাওয়া যাচ্ছে না।' }, 502);
+  if (!response.ok) return json({ locations: local, fallback:true }, 200);
   const data = await response.json();
   const seen = new Set();
-  const locations = [];
+  const locations = [...local];
+  for (const known of local)seen.add(known.label);
   for (const f of data.features || []) {
     const p = f.properties || {};
     const coords = f.geometry?.coordinates;
@@ -125,7 +210,7 @@ async function places(url) {
     if (!label || seen.has(label)) continue;
     seen.add(label);
     locations.push({ name: String(p.name || label), label, lat: Number(coords[1]), lon: Number(coords[0]) });
-    if (locations.length >= 5) break;
+    if (locations.length >= 7) break;
   }
   return json({ locations, attribution: '© OpenStreetMap contributors / Photon' }, 200, 'public, max-age=300');
 }
@@ -232,6 +317,7 @@ async function route(url) {
 }
 async function estimates(url, env) {
   await ensureTransportSchema(env);
+  await ensureGuideSchema(env);
   const origin = normalize(url.searchParams.get('origin'));
   const destination = normalize(url.searchParams.get('destination'));
   if (!validPlace(origin) || !validPlace(destination) || origin === destination) {
@@ -240,30 +326,47 @@ async function estimates(url, env) {
   const p = Object.fromEntries(url.searchParams);
   const from = locationPair(p, 'origin'), to = locationPair(p, 'destination');
   if (from === false || to === false) return json({ error: 'অবস্থানের স্থানাঙ্ক সঠিক নয়।' }, 400);
-  let sql = "SELECT fare,travel_date,vehicle_type FROM fare_reports WHERE status='approved' AND (origin=? AND destination=?)";
-  let args = [origin, destination];
+  const routeGuide = guideFor(origin,destination);
+  const normalizedOrigin=landmarkOf(origin)?.name ? normalize(landmarkOf(origin).name) : origin;
+  const normalizedDestination=landmarkOf(destination)?.name ? normalize(landmarkOf(destination).name) : destination;
+  let sql = "SELECT fare,travel_date,vehicle_type,fare_basis,vehicle_variant FROM fare_reports " +
+    "WHERE status='approved' AND (origin=? AND destination=?)";
+  let args = [normalizedOrigin, normalizedDestination];
   if (from && to) {
-    const tolerance = 0.006;
-    sql = "SELECT fare,travel_date,vehicle_type FROM fare_reports WHERE status='approved' AND " +
-      "((origin=? AND destination=?) OR " +
-      "(origin_lat BETWEEN ? AND ? AND origin_lon BETWEEN ? AND ? AND " +
+    const tolerance = 0.002;
+    sql = "SELECT fare,travel_date,vehicle_type,fare_basis,vehicle_variant FROM fare_reports "+
+      "WHERE status='approved' AND ((origin=? AND destination=?) OR "+
+      "(origin_lat BETWEEN ? AND ? AND origin_lon BETWEEN ? AND ? AND "+
       "destination_lat BETWEEN ? AND ? AND destination_lon BETWEEN ? AND ?))";
-    args = [
-      origin, destination,
-      from.lat - tolerance, from.lat + tolerance, from.lon - tolerance, from.lon + tolerance,
-      to.lat - tolerance, to.lat + tolerance, to.lon - tolerance, to.lon + tolerance
-    ];
+    args = [normalizedOrigin, normalizedDestination,
+      from.lat-tolerance,from.lat+tolerance,from.lon-tolerance,from.lon+tolerance,
+      to.lat-tolerance,to.lat+tolerance,to.lon-tolerance,to.lon+tolerance];
   }
-  const result = await env.DB.prepare(sql + ' ORDER BY travel_date DESC LIMIT 500').bind(...args).all();
-  const rows = result.results || [];
-  const vehicles = TRANSPORT.map(id => {
-    const matching = rows.filter(r => (r.vehicle_type || 'rickshaw') === id);
-    return { id, label: MODES[id], ...summary(matching) };
+  const reportResult = await env.DB.prepare(sql+' ORDER BY travel_date DESC LIMIT 500').bind(...args).all();
+  const rows = reportResult.results || [];
+  const guideRows = routeGuide ? (await env.DB.prepare(
+    "SELECT vehicle_type,fare,fare_basis,vehicle_variant,source_note FROM curated_fares WHERE route_key=?"
+  ).bind(routeGuide.key).all()).results || [] : [];
+  const vehicles = TRANSPORT.map(id=>{
+    // Never mix fares per rider with fares for the entire vehicle.
+    const basis = id==='rickshaw'?'per_ride':'per_person';
+    const matching=rows.filter(row=>
+      (row.vehicle_type||'rickshaw')===id &&
+      (id==='rickshaw'?(!row.fare_basis||row.fare_basis==='per_ride'):row.fare_basis==='per_person')
+    );
+    const guideEntry=guideRows.find(r=>r.vehicle_type===id);
+    const reference=guideEntry?{
+      fare:guideEntry.fare,basis:guideEntry.fare_basis,
+      variant:guideEntry.vehicle_variant,source:'owner_provided',
+      note:guideEntry.source_note||null,
+      dated:false
+    }:null;
+    return {id,label:MODES[id],unit:basis,...summary(matching),reference};
   });
   return json({
-    origin, destination, vehicles,
-    disclaimer: 'ভাড়া কেবল অনুমোদিত যাত্রী রিপোর্টের ওপর ভিত্তি করে; এটি সরকারি বা নিশ্চিত ভাড়া নয়।',
-    matching: 'দুই স্থান বা কাছাকাছি নির্বাচিত অবস্থানের রিপোর্ট'
+    origin,destination,vehicles,
+    sample_route:routeGuide?.key||null,
+    disclaimer:'স্থানীয়ভাবে শেয়ার করা ভাড়া এবং যাচাই করা রিপোর্ট আলাদা করে দেখানো হয়। এগুলো সরকারি নির্ধারিত ভাড়া নয়।'
   });
 }
 async function fares(url, env) {
@@ -290,11 +393,15 @@ async function reports(request, url, env) {
   if (!body) return json({ error: 'সঠিকভাবে তথ্য পূরণ করুন।' }, 400);
   const origin = normalize(body.origin), destination = normalize(body.destination);
   const vehicle = modeOf(body.vehicle_type || 'rickshaw');
+  const basis = body.fare_basis || (vehicle==='auto'?'per_person':'per_ride');
+  const variant = vehicle==='auto'?(body.vehicle_variant==='leguna'?'leguna':'battery_auto'):'rickshaw';
   const fare = Number(body.fare);
   const note = String(body.note || '').trim();
   const from = locationPair(body, 'origin'), to = locationPair(body, 'destination');
   if (!validPlace(origin) || !validPlace(destination) || origin === destination ||
-      !vehicle || !Number.isInteger(fare) || fare < 1 || fare > 5000 || !validTravelDate(body.travel_date) ||
+      !vehicle || !['per_person','per_ride'].includes(basis) ||
+      (variant==='leguna'&&basis!=='per_person') ||
+      !Number.isInteger(fare) || fare < 1 || fare > 5000 || !validTravelDate(body.travel_date) ||
       note.length > 300 || body.consent !== true || from === false || to === false) {
     return json({ error: 'স্থান, পরিবহন, ভাড়া, তারিখ ও সম্মতির তথ্য যাচাই করুন।' }, 400);
   }
@@ -310,11 +417,11 @@ async function reports(request, url, env) {
   ).bind(fingerprint, day).run();
   if (!tracked.meta?.changes) return json({ error: 'আজকের জমার সীমা শেষ। আগামীকাল চেষ্টা করুন।' }, 429);
   await env.DB.prepare(
-    'INSERT INTO fare_reports(origin,destination,origin_lat,origin_lon,destination_lat,destination_lon,fare,travel_date,note,vehicle_type) ' +
-    'VALUES(?,?,?,?,?,?,?,?,?,?)'
+    'INSERT INTO fare_reports(origin,destination,origin_lat,origin_lon,destination_lat,destination_lon,fare,travel_date,note,vehicle_type,fare_basis,vehicle_variant) ' +
+    'VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
   ).bind(
     origin, destination, from?.lat ?? null, from?.lon ?? null, to?.lat ?? null, to?.lon ?? null,
-    fare, String(body.travel_date), note, vehicle
+    fare, String(body.travel_date), note, vehicle, basis, variant
   ).run();
   return json({ ok: true, message: 'ধন্যবাদ! আপনার ভাড়ার তথ্য যাচাইয়ের জন্য জমা হয়েছে।' }, 201);
 }
@@ -326,7 +433,7 @@ async function admin(request, url, env) {
     const status = url.searchParams.get('status');
     const selected = ['pending', 'approved', 'rejected'].includes(status) ? status : 'pending';
     const result = await env.DB.prepare(
-      'SELECT id,origin,destination,vehicle_type,fare,travel_date,note,status,created_at ' +
+      'SELECT id,origin,destination,vehicle_type,vehicle_variant,fare_basis,fare,travel_date,note,status,created_at ' +
       'FROM fare_reports WHERE status=? ORDER BY created_at DESC LIMIT 100'
     ).bind(selected).all();
     return json({ reports: result.results || [] });
@@ -379,13 +486,8 @@ export default {
       if (request.method === 'GET' && path === '/api/estimates') return await estimates(url, env);
       if (request.method === 'GET' && path === '/api/fares') return await fares(url, env);
       if (request.method === 'GET' && path === '/api/routes') {
-        await ensureTransportSchema(env);
-        const list = await env.DB.prepare(
-          "SELECT origin,destination,vehicle_type,COUNT(*) AS reports FROM fare_reports " +
-          "WHERE status='approved' GROUP BY origin,destination,vehicle_type " +
-          "ORDER BY reports DESC,origin LIMIT 8"
-        ).all();
-        return json({ routes: list.results || [] });
+        await ensureGuideSchema(env);
+        return json({ routes:publicGuideRoutes() });
       }
       if (request.method === 'POST' && path === '/api/reports') return await reports(request, url, env);
       if (path.startsWith('/api/admin/')) return await admin(request, url, env);
