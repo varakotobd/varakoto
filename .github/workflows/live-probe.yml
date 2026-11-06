@@ -37,7 +37,12 @@ jobs:
           for (const [path, heading] of [
             ['/beauty', 'সৌন্দর্যের'],
             ['/travel-blog', 'ভ্রমণ ব্লগ'],
-            ['/about', 'আমাদের সম্পর্কে']
+            ['/about', 'আমাদের সম্পর্কে'],
+            ['/travel-blog/coxsbazar', 'কক্সবাজার'],
+            ['/travel-blog/sreemangal', 'শ্রীমঙ্গল'],
+            ['/travel-blog/ratargul', 'রাতারগুল'],
+            ['/travel-blog/savar-local', 'সাভার'],
+            ['/travel-blog/local-fares', 'রিকশা']
           ]) {
             const response = await get(path);
             const html = await response.text();
@@ -45,6 +50,26 @@ jobs:
               throw new Error(path + ' page failed public reachability: HTTP ' + response.status);
             }
             console.log('Editorial page live: ' + path);
+          }
+          const home = await (await get('/')).text();
+          if (home.indexOf('id="journeyLabel"') < 0 || home.indexOf('id="map"') <= home.indexOf('id="journeyLabel"')) {
+            throw new Error('The trip information is not above the map.');
+          }
+          if (home.includes('animation:route-flow') || home.includes('map.flyToBounds')) {
+            throw new Error('Old route movement is still enabled.');
+          }
+          console.log('Main results are above the static map.');
+          for(const [name, url] of [
+            ['Coxs Bazar', 'https://upload.wikimedia.org/wikipedia/commons/2/29/Cox%27s_Bazar_beach_%283991311%29.jpg'],
+            ['Sreemangal', 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Tea_Garden_near_Srimangal%2C_Sylhet%2C_Bangladesh.jpg/1280px-Tea_Garden_near_Srimangal%2C_Sylhet%2C_Bangladesh.jpg'],
+            ['Ratargul', 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Ratargul_Swamp_Forest%2C_Sylhet%2C_Bangladesh.jpg/1280px-Ratargul_Swamp_Forest%2C_Sylhet%2C_Bangladesh.jpg']
+          ]){
+            try{
+              const response = await fetch(url, {method:'GET', signal:AbortSignal.timeout(9000),
+                headers:{'user-agent':'VaraKotoTravelBlog/1.0 (public image check)'}});
+              console.log('Gallery photo '+name+': HTTP '+response.status+' '+response.headers.get('content-type'));
+              await response.body?.cancel();
+            } catch(error) { console.log('Gallery photo '+name+' could not be verified: '+error.message); }
           }
           const crpResponse = await get('/api/places?q=crp');
           const crpData = await crpResponse.json();
