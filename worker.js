@@ -307,7 +307,7 @@ async function route(url) {
       const response = await fetch(provider.url, {
         headers: {
           accept: 'application/json',
-          'x-client-id': 'varakoto.vkbd.workers.dev'
+          'x-client-id': 'varakoto.rickshaw.workers.dev'
         },
         cf: { cacheTtl: 3600, cacheEverything: true },
         signal: AbortSignal.timeout(5500)
