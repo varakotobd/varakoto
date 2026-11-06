@@ -171,8 +171,8 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 .nav .nav-button{background:#ffdf61;color:#203b31}
 .nav .nav-button:hover{background:#ffef9c}
 .trip-result{grid-template-columns:1fr}
-.map-panel{grid-row:1;position:relative;border-radius:21px}
-.trip-main{grid-row:2;min-height:auto}
+.map-panel{grid-row:2;position:relative;border-radius:21px}
+.trip-main{grid-row:1;min-height:auto}
 #map{height:440px}
 .map-heading{padding:13px 18px;background:#153f33;color:#fff;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
 .map-heading strong{font-size:13px}
@@ -182,18 +182,18 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 .vehicle-emoji svg{display:block;width:100%;height:100%;max-height:68px}
 .vehicle-card{align-items:center;justify-content:flex-start;padding:14px 20px;gap:21px}
 .vehicle-card .name{font-size:17px}.vehicle-card .price{font-size:23px}.vehicle-card .meta{font-size:11px}
-.leaflet-overlay-pane path.route-flow{animation:route-flow .85s linear infinite;stroke-dasharray:10 16}
-@keyframes route-flow{to{stroke-dashoffset:-26}}
+.leaflet-overlay-pane path.route-flow{stroke-dasharray:none}
+
 .route-marker{width:22px;height:22px;display:grid;place-items:center;position:relative;border:3px solid #fff;border-radius:50%;background:#16875b;box-shadow:0 0 0 4px #185b3a33,0 2px 11px #0005}
 .route-marker.end{background:#ed9034;border-radius:5px}
 .route-marker:before{content:"";width:6px;height:6px;border-radius:50%;background:white}
-.hero-art img{animation:hero-drift 5.5s ease-in-out infinite}
-.hero-art .floating-note{animation:float-note 3.8s ease-in-out infinite}
-@keyframes hero-drift{50%{transform:translateY(-8px)}}@keyframes float-note{50%{transform:translateY(-10px)}}
+
+
+
 .explore-band{margin:25px 0 0;background:#142f27;color:#fff}
 .explore-inner{display:grid;grid-template-columns:1fr .85fr;gap:40px;align-items:center;padding:50px 0}
-.explore-inner img{width:100%;height:280px;object-fit:cover;border-radius:20px;box-shadow:0 14px 42px #0003;transition:transform .4s}
-.explore-inner img:hover{transform:scale(1.025)}
+.explore-inner img{width:100%;height:280px;object-fit:cover;border-radius:20px;box-shadow:0 14px 42px #0003}
+
 .explore-label{font-size:12px;color:#ffdf61;font-weight:900;letter-spacing:2px}
 .explore-inner h2{font-size:clamp(27px,3.5vw,44px);line-height:1.3;margin:10px 0}
 .explore-inner p{font-size:14px;color:#cbded0;max-width:520px}
@@ -203,11 +203,25 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 @media(prefers-reduced-motion:reduce){.hero-art img,.hero-art .floating-note,.leaflet-overlay-pane path.route-flow{animation:none!important}}
 
 .map-controls{display:flex;gap:9px;flex-wrap:wrap;padding:13px 16px 5px;background:#fff}
-.map-controls button{border:1px solid #d5e5d7;color:#154d33;background:#eff7f0;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:850;transition:background .2s,transform .2s}
-.map-controls button:hover{background:#e2f3e5;transform:translateY(-1px)}
+.map-controls button{border:1px solid #d5e5d7;color:#154d33;background:#eff7f0;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:850}
+.map-controls button:hover{background:#e2f3e5}
 .map-controls button[aria-pressed="true"]{background:#ffd43b;color:#263024;border-color:#cfaa16}
 .route-marker-wrap{background:transparent;border:0}
 @media(max-width:640px){.map-controls{gap:6px;padding:10px}.map-controls button{font-size:11px;padding:9px 8px}}
+
+/* Static navigation and clear route legend */
+html{scroll-behavior:auto}
+.trip-result{display:flex;flex-direction:column;gap:15px}
+.trip-main,.map-panel{width:100%;grid-row:auto}
+#results{scroll-margin-top:18px}
+.map-panel{box-shadow:0 14px 38px #1b292216}
+.route-tooltip{background:#fff!important;border:1px solid #dfe7df!important;color:#24382f!important;font-family:system-ui,sans-serif;font-weight:800!important;border-radius:7px!important;box-shadow:0 2px 7px #0002!important}
+.route-tooltip:before{display:none}
+.map-heading{gap:12px}
+.map-note{padding:6px 17px 14px;line-height:1.6}
+.hero-art img,.hero-art .floating-note,.card,.card:hover,.explore-inner img,.map-controls button{animation:none!important;transform:none!important;transition:none!important}
+.route-marker-wrap,.route-marker{animation:none!important}
+@media(max-width:640px){.trip-result{gap:12px}.trip-main{padding:16px}.map-heading{padding:14px}}
 </style>
 </head>
 <body>
@@ -405,7 +419,8 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
          const value=place.label.slice(0,90);
          input.value=value;selected[type]={...place,label:value};hide();
          $('searchHint').textContent='স্থান নির্বাচন করা হয়েছে। দুটি অবস্থান হলে সড়কের দূরত্ব হিসাব হবে।';
-         if(type==='from')$('toInput').focus();
+         if(type==='from' && !$('toInput').value.trim())$('toInput').focus();
+         if($('fromInput').value.trim().length>=2 && $('toInput').value.trim().length>=2){$('tripForm').requestSubmit();}
        });
        li.append(button);list.append(li);
      }
@@ -415,7 +430,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      selected[type]=null;hide();
      clearTimeout(timer);if(controller)controller.abort();
      const value=input.value.trim();
-     if(value.length<3)return;
+     if(value.length<2)return;
      timer=setTimeout(async()=>{
        controller=new AbortController();
        list.replaceChildren();
@@ -431,7 +446,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
          const li=document.createElement('li');li.className='no-place';li.textContent='লোকেশন সাজেশন পাওয়া যাচ্ছে না। হাতে জায়গা লিখে ভাড়া খুঁজতে পারবেন।';list.append(li);
          list.hidden=false;
        }
-     },700);
+     },430);
    });
    input.addEventListener('keydown',e=>{
      if(e.key==='Escape'){hide();}
@@ -454,7 +469,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    if(selected[type]?.requires_map_pin)return null;
    const input=$(type==='from'?'fromInput':'toInput');
    const query=input.value.trim();
-   if(query.length<3)return null;
+   if(query.length<2)return null;
    try{
      const response=await api('/api/places?q='+encodeURIComponent(query));
      const first=response.locations?.[0];
@@ -518,26 +533,34 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  function drawMap(a,b,geometry){
    loadMap();if(!map)return;
    clearMap();
-   const point = (lat,lon,isEnd) => L.marker([lat,lon],{
+   const makePin=(lat,lon,isEnd)=>L.marker([lat,lon],{
      icon:L.divIcon({
        className:'route-marker-wrap',
        html:'<span class="route-marker'+(isEnd?' end':'')+'"></span>',
        iconSize:[24,24],iconAnchor:[12,12]
      }),
      keyboard:true,interactive:true
-   }).addTo(map).bindPopup(isEnd?'গন্তব্য':'যাত্রার শুরু');
-   markers.push(point(a.lat,a.lon,false),point(b.lat,b.lon,true));
-   if(Array.isArray(geometry)&&geometry.length>=2){
-     const coordinates=geometry.filter(c=>Array.isArray(c)&&Number.isFinite(c[0])&&Number.isFinite(c[1]))
-       .map(c=>[c[1],c[0]]);
-     if(coordinates.length>=2){
-       mapLine=L.polyline(coordinates,{color:'#1b2823',weight:10,opacity:.85,lineCap:'round',lineJoin:'round'}).addTo(map);
-       movingLine=L.polyline(coordinates,{color:'#ffd43b',weight:5,opacity:1,dashArray:'10 16',lineCap:'round',
-         className:'route-flow'}).addTo(map);
-       map.flyToBounds(mapLine.getBounds(),{padding:[42,42],maxZoom:16,duration:1.25});
-     }else map.fitBounds(L.latLngBounds([a.lat,a.lon],[b.lat,b.lon]),{padding:[36,36],maxZoom:16});
-   }else map.flyToBounds(L.latLngBounds([a.lat,a.lon],[b.lat,b.lon]),{padding:[36,36],maxZoom:16,duration:1.1});
-   setTimeout(()=>map.invalidateSize(),90);
+   }).addTo(map)
+     .bindPopup(isEnd?'গন্তব্য':'যাত্রার শুরু')
+     .bindTooltip(isEnd?'ড্রপ':'পিকআপ',{permanent:true,direction:'top',offset:[0,-14],className:'route-tooltip'});
+   markers.push(makePin(a.lat,a.lon,false),makePin(b.lat,b.lon,true));
+   const validGeometry=Array.isArray(geometry) && geometry.length>=2
+     ?geometry.filter(c=>Array.isArray(c)&&Number.isFinite(c[0])&&Number.isFinite(c[1]))
+       .map(c=>[c[1],c[0]]) : [];
+   if(validGeometry.length>=2){
+     mapLine=L.polyline(validGeometry,{color:'#21362c',weight:9,opacity:.9,
+       lineCap:'round',lineJoin:'round'}).addTo(map);
+     movingLine=L.polyline(validGeometry,{color:'#ffd43b',weight:5,opacity:1,
+       lineCap:'round',lineJoin:'round'}).addTo(map);
+     map.fitBounds(mapLine.getBounds(),{padding:[50,50],maxZoom:17,animate:false});
+   }else{
+     mapLine=L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{
+       color:'#647f79',weight:4,opacity:.9,dashArray:'7,10'
+     }).addTo(map);
+     map.fitBounds(L.latLngBounds([a.lat,a.lon],[b.lat,b.lon]),{
+       padding:[45,45],maxZoom:16,animate:false});
+   }
+   setTimeout(()=>map.invalidateSize(false),50);
  }
  window.addEventListener('load',loadMap);
  function stopGPS(){
@@ -627,11 +650,12 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      latestTrip={origin,destination,from,to};
      const params=new URLSearchParams({origin,destination});
      if(isCoord(from)&&isCoord(to)){
+       setText('mapInfo','পিকআপ ও ড্রপ চিহ্নিত; সড়কপথ খোঁজা হচ্ছে…');
        params.set('origin_lat',String(from.lat));params.set('origin_lon',String(from.lon));
        params.set('destination_lat',String(to.lat));params.set('destination_lon',String(to.lon));
        drawMap(from,to,null);
        setText('distance',lang.format(haversine(from,to))+' কিমি');
-       setText('distanceType','সরাসরি দূরত্ব');
+       setText('distanceType','প্রাথমিক সরলরেখার দূরত্ব');
        setText('journeyNote','সড়কপথের দূরত্ব হিসাব হচ্ছে…');
      }
      const faresPromise=api('/api/estimates?'+params.toString());
@@ -657,7 +681,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
          const distance=Number.isFinite(route?.distance_km)?route.distance_km:haversine(from,to);
          setText('distance',lang.format(distance)+' কিমি');
          setText('distanceType',route?'আনুমানিক সড়ক দূরত্ব':'সরলরেখার দূরত্ব');
-         setText('mapInfo',route?'🛣️ সড়কপথের আনুমানিক রুট':'📏 সরলরেখার দূরত্ব');
+         setText('mapInfo',route?'🛣️ রাস্তার ওপর চিহ্নিত পথ • সড়কপথের আনুমানিক দূরত্ব':'📏 ধূসর ড্যাশ লাইন = সরলরেখার দূরত্ব; সড়কপথ পাওয়া যায়নি');
          setText('journeyNote',(route?.description||'সড়কপথের রুট পাওয়া যায়নি; সরলরেখার দূরত্ব দেখানো হচ্ছে।')+' ভাড়া নির্ভর করে অনুমোদিত রিপোর্টের ওপর।');
        });
      }else{
