@@ -1,0 +1,62 @@
+name: Live Vara Koto check
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify deployed site, database, and map providers
+        run: |
+          node --input-type=module <<'JS'
+          const base = 'https://varakoto.vkbd.workers.dev';
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+          async function get(path) {
+            return await fetch(base + path, { signal: AbortSignal.timeout(10000), headers: { accept: 'application/json' } });
+          }
+          let ready = false;
+          for (let attempt = 1; attempt <= 10; attempt++) {
+            try {
+              const response = await get('/');
+              const html = await response.text();
+              if (response.ok && html.includes('পিকআপ লোকেশন') && html.includes('ব্যাটারি অটো')) {
+                console.log('Production homepage has the yellow pickup/drop-off interface.');
+                ready = true;
+                break;
+              }
+            } catch (error) {
+              console.log('Homepage probe attempt ' + attempt + ': ' + error.message);
+            }
+            if (attempt !== 10) await sleep(7000);
+          }
+          if (!ready) throw new Error('New trip-search frontend is not accessible at the public Worker URL.');
+          const health = await get('/api/health');
+          const status = await health.json();
+          if (!health.ok || status.ok !== true) throw new Error('Database health check failed: ' + JSON.stringify(status));
+          console.log('D1 database health check passed.');
+          const estimates = await get('/api/estimates?origin=Savar&destination=Nabinagar');
+          const data = await estimates.json();
+          if (!estimates.ok || !Array.isArray(data.vehicles) || data.vehicles.length !== 4) {
+            throw new Error('Vehicle-aware estimate endpoint failed: ' + JSON.stringify(data));
+          }
+          console.log('All four local vehicle types are supported. Verified-fare availability depends on real reports.');
+          for (const [name, path] of [
+            ['Photon autocomplete', '/api/places?q=Dhaka'],
+            ['OSRM road distance', '/api/route?origin_lat=23.8103&origin_lon=90.4125&destination_lat=23.819&destination_lon=90.418']
+          ]) {
+            try {
+              const response = await get(path);
+              const body = await response.json();
+              console.log(name + ': HTTP ' + response.status + '; ' + (response.ok ? 'available' : 'temporarily unavailable'));
+              if (response.ok && name === 'OSRM road distance' && !Number.isFinite(body.distance_km)) {
+                console.log('WARNING: Road routing did not return a valid distance.');
+              }
+            } catch (error) {
+              console.log('WARNING: ' + name + ' could not be verified: ' + error.message);
+            }
+          }
+          JS
