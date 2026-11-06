@@ -201,6 +201,13 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 @media(max-width:780px){#map{height:390px}.explore-inner{grid-template-columns:1fr}.explore-inner img{height:230px}}
 @media(max-width:640px){#map{height:360px}.map-heading small{margin-left:0;width:100%}.vehicle-emoji{width:70px;height:52px}.vehicle-card{gap:9px;padding:13px 10px}.vehicle-card .name{font-size:13px}.vehicle-card .price{font-size:18px}.nav a:not(.nav-button){display:none}.nav .nav-button{font-size:11px;padding:10px 9px}.explore-inner{padding:32px 0;gap:20px}}
 @media(prefers-reduced-motion:reduce){.hero-art img,.hero-art .floating-note,.leaflet-overlay-pane path.route-flow{animation:none!important}}
+
+.map-controls{display:flex;gap:9px;flex-wrap:wrap;padding:13px 16px 5px;background:#fff}
+.map-controls button{border:1px solid #d5e5d7;color:#154d33;background:#eff7f0;border-radius:11px;padding:10px 13px;font-size:12px;font-weight:850;transition:background .2s,transform .2s}
+.map-controls button:hover{background:#e2f3e5;transform:translateY(-1px)}
+.map-controls button[aria-pressed="true"]{background:#ffd43b;color:#263024;border-color:#cfaa16}
+.route-marker-wrap{background:transparent;border:0}
+@media(max-width:640px){.map-controls{gap:6px;padding:10px}.map-controls button{font-size:11px;padding:9px 8px}}
 </style>
 </head>
 <body>
@@ -280,7 +287,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    <div class="map-heading"><span class="live-dot"></span><strong>আপনার যাত্রার মানচিত্র</strong><small>বাস্তব রাস্তার রুট • লাইভ গাড়ি ট্র্যাকিং নয়</small></div><div id="map" aria-label="নির্বাচিত যাত্রার মানচিত্র" role="region"></div>
    <div class="map-controls" role="group" aria-label="মানচিত্র থেকে সঠিক পিকআপ এবং গন্তব্য নির্বাচন">
     <button id="pickFrom" type="button" aria-pressed="false">📍 মানচিত্রে পিকআপ দিন</button>
-    <button id="pickTo" type="button" aria-pressed="false">🏁 ড্রপ দিন</button>
+    <button id="pickTo" type="button" aria-pressed="false">🏁 ড্রপ দিন</button><button id="gpsToggle" type="button" aria-pressed="false">◎ নিজের লাইভ লোকেশন</button>
    </div>
    <div class="map-footer"><span id="mapInfo">📍 সাভারের বাস্তব মানচিত্র</span><button id="mapReset" type="button">রিসেট</button></div>
    <div class="map-note">OpenStreetMap-এর বাস্তব রাস্তা; রুট ও দূরত্ব OSRM/Valhalla দ্বারা আনুমানিক। লোকাল অটো/রিকশার পথ ভিন্ন হতে পারে।</div>
@@ -357,7 +364,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  const modeLabel = {rickshaw:'রিকশা',auto:'ব্যাটারি অটো / লেগুনা'};
  let activeMode = 'rickshaw';
  let suggestionsOpen = null;
- let map = null, mapLine = null, markers = [], latestTrip = null, mapPickTarget = null;
+ let map = null, mapLine = null, movingLine = null, liveMarker = null, gpsWatch = null, markers = [], latestTrip = null, mapPickTarget = null;
  let selected = {from:null,to:null}, reportCoordinates = {from:null,to:null};
  let lastResults = {};
  let searchId = 0;
@@ -506,19 +513,63 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    if(!map)return;
    markers.forEach(m=>map.removeLayer(m));markers=[];
    if(mapLine){map.removeLayer(mapLine);mapLine=null;}
+   if(movingLine){map.removeLayer(movingLine);movingLine=null;}
  }
  function drawMap(a,b,geometry){
    loadMap();if(!map)return;
    clearMap();
-   markers.push(L.circleMarker([a.lat,a.lon],{radius:8,weight:3,color:'#fff',fillColor:'#087952',fillOpacity:1}).addTo(map).bindPopup('পিকআপ'));
-   markers.push(L.circleMarker([b.lat,b.lon],{radius:8,weight:3,color:'#fff',fillColor:'#ef9328',fillOpacity:1}).addTo(map).bindPopup('ড্রপ'));
+   const point = (lat,lon,isEnd) => L.marker([lat,lon],{
+     icon:L.divIcon({
+       className:'route-marker-wrap',
+       html:'<span class="route-marker'+(isEnd?' end':'')+'"></span>',
+       iconSize:[24,24],iconAnchor:[12,12]
+     }),
+     keyboard:true,interactive:true
+   }).addTo(map).bindPopup(isEnd?'গন্তব্য':'যাত্রার শুরু');
+   markers.push(point(a.lat,a.lon,false),point(b.lat,b.lon,true));
    if(Array.isArray(geometry)&&geometry.length>=2){
-     mapLine=L.polyline(geometry.map(x=>[x[1],x[0]]),{color:'#23292a',weight:5,opacity:.83}).addTo(map);
-     map.fitBounds(mapLine.getBounds(),{padding:[28,28],maxZoom:15});
-   }else map.fitBounds(L.latLngBounds([a.lat,a.lon],[b.lat,b.lon]),{padding:[36,36],maxZoom:14});
-   setTimeout(()=>map.invalidateSize(),40);
+     const coordinates=geometry.filter(c=>Array.isArray(c)&&Number.isFinite(c[0])&&Number.isFinite(c[1]))
+       .map(c=>[c[1],c[0]]);
+     if(coordinates.length>=2){
+       mapLine=L.polyline(coordinates,{color:'#1b2823',weight:10,opacity:.85,lineCap:'round',lineJoin:'round'}).addTo(map);
+       movingLine=L.polyline(coordinates,{color:'#ffd43b',weight:5,opacity:1,dashArray:'10 16',lineCap:'round',
+         className:'route-flow'}).addTo(map);
+       map.flyToBounds(mapLine.getBounds(),{padding:[42,42],maxZoom:16,duration:1.25});
+     }else map.fitBounds(L.latLngBounds([a.lat,a.lon],[b.lat,b.lon]),{padding:[36,36],maxZoom:16});
+   }else map.flyToBounds(L.latLngBounds([a.lat,a.lon],[b.lat,b.lon]),{padding:[36,36],maxZoom:16,duration:1.1});
+   setTimeout(()=>map.invalidateSize(),90);
  }
  window.addEventListener('load',loadMap);
+ function stopGPS(){
+   if(gpsWatch!==null && navigator.geolocation)navigator.geolocation.clearWatch(gpsWatch);
+   gpsWatch=null;
+   $('gpsToggle').textContent='◎ নিজের লাইভ লোকেশন';
+   $('gpsToggle').setAttribute('aria-pressed','false');
+   if(liveMarker&&map){map.removeLayer(liveMarker);liveMarker=null;}
+ }
+ $('gpsToggle').addEventListener('click',()=>{
+   if(gpsWatch!==null){stopGPS();setText('mapInfo','লাইভ GPS বন্ধ করা হয়েছে।');return;}
+   if(!navigator.geolocation){setText('mapInfo','এই ব্রাউজারে GPS পাওয়া যাচ্ছে না।');return;}
+   $('gpsToggle').textContent='● লাইভ GPS বন্ধ করুন';
+   $('gpsToggle').setAttribute('aria-pressed','true');
+   setText('mapInfo','GPS অবস্থান নেওয়া হচ্ছে…');
+   gpsWatch=navigator.geolocation.watchPosition(position=>{
+     const p=position.coords;
+     if(p.latitude<20||p.latitude>27||p.longitude<88||p.longitude>93){
+       setText('mapInfo','আপনার GPS অবস্থান বাংলাদেশের বাইরে।');return;
+     }
+     loadMap();if(!map)return;
+     if(!liveMarker){
+       liveMarker=L.circleMarker([p.latitude,p.longitude],{radius:9,color:'#fff',weight:3,
+         fillColor:'#2879f0',fillOpacity:1}).addTo(map).bindPopup('আপনার GPS অবস্থান (চলমান)');
+       map.panTo([p.latitude,p.longitude],{animate:true});
+     }else liveMarker.setLatLng([p.latitude,p.longitude]);
+     setText('mapInfo','● আপনার অবস্থান আপডেট হচ্ছে (GPS); গাড়ির লাইভ ট্র্যাকিং নয়।');
+   },error=>{
+     stopGPS();setText('mapInfo',error.code===1?'লোকেশন ব্যবহার করার অনুমতি দেওয়া হয়নি।':'GPS পাওয়া যাচ্ছে না।');
+   },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+ });
+ window.addEventListener('pagehide',stopGPS);
  $('mapReset').addEventListener('click',()=>{
    clearMap();loadMap();if(map){map.setView([23.85068,90.25932],12);map.invalidateSize();}
    setText('mapInfo','📍 সাভারের মানচিত্র দেখানো হচ্ছে');
