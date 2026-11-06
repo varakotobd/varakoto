@@ -224,8 +224,8 @@ async function fares(url, env) {
     "SELECT fare,travel_date FROM fare_reports WHERE origin=? AND destination=? AND status='approved' AND vehicle_type=? ORDER BY travel_date DESC LIMIT 100"
   ).bind(origin, destination, vehicle).all();
   const data = summary(result.results || []);
+  if (!data.count) return json({ count: 0, vehicle_type: vehicle, message: 'এই রুটের জন্য এখনো অনুমোদিত ভাড়ার তথ্য নেই।' });
   return json({ ...data, vehicle_type: vehicle,
-    ...(data.count ? {} : { message: 'এই রুটের জন্য এখনো অনুমোদিত ভাড়ার তথ্য নেই।' }),
     disclaimer: 'এটি কমিউনিটির তথ্যভিত্তিক আনুমানিক ভাড়া; নির্ধারিত ভাড়া নয়।'
   });
 }
