@@ -149,32 +149,44 @@ async function reverse(url) {
   return json({ location: { label, lat, lon } }, 200, 'public, max-age=300');
 }
 async function route(url) {
-  const origin = locationPair(Object.fromEntries(url.searchParams), 'origin');
-  const destination = locationPair(Object.fromEntries(url.searchParams), 'destination');
+  const query = Object.fromEntries(url.searchParams);
+  const origin = locationPair(query, 'origin');
+  const destination = locationPair(query, 'destination');
   if (!origin || !destination) return json({ error: 'মানচিত্রে দুটি সঠিক অবস্থান বাছুন।' }, 400);
-  if (origin.lat === destination.lat && origin.lon === destination.lon) return json({ error: 'আলাদা দুটি অবস্থান বাছুন।' }, 400);
-  const path = origin.lon + ',' + origin.lat + ';' + destination.lon + ',' + destination.lat;
-  const endpoint = 'https://router.project-osrm.org/route/v1/driving/' + path +
-    '?overview=full&geometries=geojson&steps=false&alternatives=false';
-  const response = await fetch(endpoint, {
-    headers: { accept: 'application/json' },
-    cf: { cacheTtl: 3600, cacheEverything: true },
-    signal: AbortSignal.timeout(9000)
-  });
-  if (!response.ok) return json({ error: 'রাস্তার দূরত্ব এখন পাওয়া যাচ্ছে না।' }, 502);
-  const body = await response.json();
-  const result = body.routes?.[0];
-  if (!result || !Number.isFinite(result.distance) || result.distance <= 0 || result.distance > 2000000 ||
-      !Array.isArray(result.geometry?.coordinates)) {
-    return json({ error: 'এই রুটে রাস্তার দূরত্ব পাওয়া যায়নি।' }, 502);
+  if (origin.lat === destination.lat && origin.lon === destination.lon) {
+    return json({ error: 'আলাদা দুটি অবস্থান বাছুন।' }, 400);
   }
-  return json({
-    distance_km: Math.round(result.distance / 100) / 10,
-    geometry: result.geometry.coordinates,
-    type: 'road',
-    description: 'মোটরযানের রাস্তা ধরে আনুমানিক দূরত্ব; রিকশা বা অটোর প্রকৃত পথ আলাদা হতে পারে।',
-    attribution: '© OpenStreetMap contributors / OSRM'
-  }, 200, 'public, max-age=300');
+  const coords = origin.lon + ',' + origin.lat + ';' + destination.lon + ',' + destination.lat;
+  const path = coords + '?overview=full&geometries=geojson&steps=false&alternatives=false';
+  const providers = [
+    'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + path,
+    'https://router.project-osrm.org/route/v1/driving/' + path
+  ];
+  for (const endpoint of providers) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { accept: 'application/json' },
+        cf: { cacheTtl: 3600, cacheEverything: true },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!response.ok) continue;
+      const body = await response.json();
+      const result = body.routes?.[0];
+      if (!result || !Number.isFinite(result.distance) || result.distance <= 0 ||
+          result.distance > 2000000 || !Array.isArray(result.geometry?.coordinates) ||
+          result.geometry.coordinates.length < 2) continue;
+      return json({
+        distance_km: Math.round(result.distance / 100) / 10,
+        geometry: result.geometry.coordinates,
+        type: 'road',
+        description: 'সড়কপথের আনুমানিক দূরত্ব; রিকশা বা অটোর বাস্তব পথ আলাদা হতে পারে।',
+        attribution: '© OpenStreetMap contributors / OSRM'
+      }, 200, 'public, max-age=300');
+    } catch (error) {
+      console.warn('External routing provider unavailable', error?.message || error);
+    }
+  }
+  return json({ error: 'সড়কপথের দূরত্ব এখন পাওয়া যাচ্ছে না। সরলরেখার দূরত্ব ব্যবহার করুন।' }, 502);
 }
 async function estimates(url, env) {
   await ensureTransportSchema(env);
