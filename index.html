@@ -97,13 +97,21 @@ input::placeholder,textarea::placeholder{color:#9aaea1}
 @media(max-width:700px){.container{width:min(100% - 28px,560px)}.header-inner{min-height:68px}.brand-mark{width:42px;height:42px;font-size:23px}.brand-name{font-size:21px}.nav a:not(.nav-cta){display:none}.nav .nav-cta{padding:10px 13px}.hero-grid{grid-template-columns:1fr;min-height:auto;gap:15px;padding:42px 0 46px}.hero h1{font-size:42px}.hero p{font-size:15px}.route-illustration{min-height:255px}.route-circle{width:290px}.route-float{width:265px;padding:18px}.section{padding:55px 0}.panel{padding:21px}.two-col,.map-grid,.three-col{grid-template-columns:1fr}.field-grid{grid-template-columns:1fr 34px 1fr;gap:6px}.field-grid .swap{width:34px}.form-row .btn{width:100%}.three-col{gap:12px}.feature{padding:21px}#map{height:305px}.footer a{display:inline-block;margin:0 15px 6px 0}}
 @media(max-width:360px){.hero h1{font-size:35px}.field-grid{grid-template-columns:1fr;gap:0}.field-grid .swap{transform:rotate(90deg);margin:6px auto 0}.actions .btn{flex:1}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+
+/* Official Bengali rickshaw identity */
+.brand-mark{display:block;background:transparent;border-radius:0;overflow:visible;width:56px;height:66px;flex-shrink:0}
+.brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
+.hero-logo{display:block;width:min(87%,335px);height:auto;max-height:430px;object-fit:contain;position:relative;z-index:2;filter:drop-shadow(0 12px 22px rgba(19,75,46,.11))}
+.route-circle{background:radial-gradient(circle at center,#e7f4eb 0%,#d5ecdd 70%,#c6e7d1 100%);border-color:#dbebdc}
+.route-circle:before,.route-circle:after{pointer-events:none}
+@media(max-width:700px){.brand-mark{width:46px;height:56px}.hero-logo{width:min(87%,290px);max-height:315px}}
 </style>
 </head>
 <body>
 <header class="site-header">
  <div class="container header-inner">
   <a class="brand" href="/" aria-label="ভাড়া কত? হোম">
-   <span class="brand-mark" aria-hidden="true">🛺</span><span><span class="brand-name">ভাড়া কত?</span><span class="brand-sub">VARAKOTO · BANGLADESH</span></span>
+   <span class="brand-mark"><img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-bangla-rickshaw-logo.png" alt="ভাড়া কত? রিকশা লোগো" width="56" height="82" decoding="async"></span><span><span class="brand-name">ভাড়া কত?</span><span class="brand-sub">VARAKOTO · BANGLADESH</span></span>
   </a>
   <nav class="nav" aria-label="প্রধান নেভিগেশন">
    <a href="#search-fare">ভাড়া খুঁজুন</a><a href="#how">কীভাবে কাজ করে</a><a href="#map-section">মানচিত্র</a><a href="#report" class="nav-cta">ভাড়া জানান ↗</a>
@@ -122,15 +130,7 @@ input::placeholder,textarea::placeholder{color:#9aaea1}
   </div>
   <div class="route-illustration" aria-hidden="true">
    <div class="route-circle">
-    <div class="route-float">
-     <p class="mini-caption">একটি যাত্রা, সঠিক ধারণা</p>
-     <div class="journey">
-      <span class="point">●</span><div><strong>যাত্রার শুরু</strong><small>আপনার অবস্থান লিখুন</small></div>
-      <span class="line"></span><div></div>
-      <span class="point end">●</span><div><strong>আপনার গন্তব্য</strong><small>যেখানে যেতে চান</small></div>
-     </div>
-     <div class="route-ribbon">ভাড়া নির্ধারণ করবে অনুমোদিত যাত্রার তথ্য</div>
-    </div>
+    <img class="hero-logo" src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-bangla-rickshaw-logo.png" width="496" height="720" loading="eager" decoding="async" alt="">
    </div>
   </div>
  </div>
