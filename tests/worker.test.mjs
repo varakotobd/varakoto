@@ -97,3 +97,52 @@ test('missing routes are discovered from real reports only', async () => {
   const { json } = await response('/api/routes');
   assert.deepEqual(json.routes, []);
 });
+
+test('local vehicle fare estimates stay separated by transport type', async () => {
+  const env = environment([
+    { fare: 50, travel_date: '2026-11-01', vehicle_type: 'rickshaw' },
+    { fare: 60, travel_date: '2026-11-01', vehicle_type: 'rickshaw' },
+    { fare: 35, travel_date: '2026-11-01', vehicle_type: 'auto' },
+    { fare: 180, travel_date: '2026-11-01', vehicle_type: 'cng' }
+  ]);
+  const { res, json } = await response('/api/estimates?origin=সাভার&destination=নবীনগর', env);
+  assert.equal(res.status, 200);
+  assert.equal(json.vehicles.find(x => x.id === 'rickshaw').median, 55);
+  assert.equal(json.vehicles.find(x => x.id === 'auto').median, 35);
+  assert.equal(json.vehicles.find(x => x.id === 'cng').median, 180);
+  assert.equal(json.vehicles.find(x => x.id === 'easybike').count, 0);
+});
+test('road distance rejects out-of-country coordinates without contacting routing service', async () => {
+  const { res } = await response('/api/route?origin_lat=12&origin_lon=90&destination_lat=23.8&destination_lon=90.3');
+  assert.equal(res.status, 400);
+});
+test('very short place search does not contact third-party provider', async () => {
+  const { res, json } = await response('/api/places?q=Dh');
+  assert.equal(res.status, 200);
+  assert.deepEqual(json.locations, []);
+});
+test('reported vehicle type is saved with the pending fare', async () => {
+  const env = environment();
+  const { res } = await response('/api/reports', env, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      origin: 'সাভার', destination: 'নবীনগর', vehicle_type: 'auto',
+      fare: 40, travel_date: '2026-11-01', consent: true
+    })
+  });
+  assert.equal(res.status, 201);
+  const entry = env.operations.find(x => x.sql.includes('INSERT INTO fare_reports'));
+  assert.ok(entry);
+  assert.equal(entry.args.at(-1), 'auto');
+});
+test('Bengali pickup UI has four transport options and valid inline JS', async () => {
+  const page = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(page, /পিকআপ লোকেশন/);
+  assert.match(page, /ড্রপ লোকেশন/);
+  assert.match(page, /ব্যাটারি অটো/);
+  assert.match(page, /id="map"/);
+  const scripts = [...page.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
+    .map(match => match[1]).filter(s => s.trim());
+  assert.equal(scripts.length, 1);
+  assert.doesNotThrow(() => new Function(scripts[0]));
+});
