@@ -129,6 +129,25 @@ async function places(url) {
   }
   return json({ locations, attribution: '© OpenStreetMap contributors / Photon' }, 200, 'public, max-age=300');
 }
+async function reverse(url) {
+  const lat = Number(url.searchParams.get('lat')), lon = Number(url.searchParams.get('lon'));
+  if (!inBangladesh(lat, lon)) return json({ error: 'বাংলাদেশের মধ্যে সঠিক অবস্থান দিন।' }, 400);
+  const endpoint = new URL('https://photon.komoot.io/reverse');
+  endpoint.searchParams.set('lat', String(lat));
+  endpoint.searchParams.set('lon', String(lon));
+  endpoint.searchParams.set('limit', '1');
+  const response = await fetch(endpoint.toString(), {
+    headers: { accept: 'application/json', 'accept-language': 'en' },
+    cf: { cacheTtl: 1800, cacheEverything: true },
+    signal: AbortSignal.timeout(8000)
+  });
+  if (!response.ok) return json({ error: 'বর্তমান অবস্থানের নাম পাওয়া যাচ্ছে না।' }, 502);
+  const body = await response.json();
+  const p = body.features?.[0]?.properties || {};
+  const label = placeNames(p).slice(0, 90);
+  if (!label) return json({ error: 'বর্তমান অবস্থানের নাম পাওয়া যায়নি।' }, 404);
+  return json({ location: { label, lat, lon } }, 200, 'public, max-age=300');
+}
 async function route(url) {
   const origin = locationPair(Object.fromEntries(url.searchParams), 'origin');
   const destination = locationPair(Object.fromEntries(url.searchParams), 'destination');
@@ -301,6 +320,7 @@ export default {
           json({ ok: false, error: 'Database setup incomplete' }, 503);
       }
       if (request.method === 'GET' && path === '/api/places') return await places(url);
+      if (request.method === 'GET' && path === '/api/reverse') return await reverse(url);
       if (request.method === 'GET' && path === '/api/route') return await route(url);
       if (request.method === 'GET' && path === '/api/estimates') return await estimates(url, env);
       if (request.method === 'GET' && path === '/api/fares') return await fares(url, env);
