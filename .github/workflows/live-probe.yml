@@ -13,7 +13,7 @@ jobs:
       - name: Verify deployed site, database, and map providers
         run: |
           node --input-type=module <<'JS'
-          const base = 'https://varakoto.vkbd.workers.dev';
+          const base = 'https://varakoto.rickshaw.workers.dev';
           const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
           async function get(path) {
             return await fetch(base + path, { signal: AbortSignal.timeout(10000), headers: { accept: 'application/json' } });
