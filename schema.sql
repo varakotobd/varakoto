@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS fare_reports (
  fare INTEGER NOT NULL CHECK(fare BETWEEN 1 AND 5000),
  travel_date TEXT NOT NULL,
  note TEXT NOT NULL DEFAULT '',
+ vehicle_type TEXT NOT NULL DEFAULT 'rickshaw' CHECK(vehicle_type IN ('rickshaw','auto','cng','easybike')),
  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  reviewed_at TEXT
@@ -18,3 +19,5 @@ CREATE TABLE IF NOT EXISTS submission_limits (
  count INTEGER NOT NULL DEFAULT 1,
  PRIMARY KEY (fingerprint,day)
 );
+
+CREATE INDEX IF NOT EXISTS idx_vehicle_route ON fare_reports(vehicle_type,origin,destination,status);
