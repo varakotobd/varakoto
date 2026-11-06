@@ -117,10 +117,11 @@ test('road distance rejects out-of-country coordinates without contacting routin
   const { res } = await response('/api/route?origin_lat=12&origin_lon=90&destination_lat=23.8&destination_lon=90.3');
   assert.equal(res.status, 400);
 });
-test('very short place search does not contact third-party provider', async () => {
+test('two-letter place search uses only our local landmark directory', async () => {
   const { res, json } = await response('/api/places?q=Dh');
   assert.equal(res.status, 200);
-  assert.deepEqual(json.locations, []);
+  assert.ok(Array.isArray(json.locations));
+  assert.ok(json.locations.every(x=>x.local === true));
 });
 test('reported vehicle type is saved with the pending fare', async () => {
   const env = environment();
