@@ -34,6 +34,25 @@ jobs:
             if (attempt !== 10) await sleep(7000);
           }
           if (!ready) throw new Error('New trip-search frontend is not accessible at the public Worker URL.');
+          for (const [path, heading] of [
+            ['/beauty', 'সৌন্দর্যের'],
+            ['/travel-blog', 'ভ্রমণ ব্লগ'],
+            ['/about', 'আমাদের সম্পর্কে']
+          ]) {
+            const response = await get(path);
+            const html = await response.text();
+            if (!response.ok || !html.includes(heading)) {
+              throw new Error(path + ' page failed public reachability: HTTP ' + response.status);
+            }
+            console.log('Editorial page live: ' + path);
+          }
+          const crpResponse = await get('/api/places?q=crp');
+          const crpData = await crpResponse.json();
+          if(!crpResponse.ok || !Array.isArray(crpData.locations) ||
+              !crpData.locations.some(x => x.label.includes('সিআরপি') && Number.isFinite(x.lat))) {
+            throw new Error('CRP landmark search is not returning a verified map point.');
+          }
+          console.log('Savar CRP local search returns a verified coordinate.');
           const health = await get('/api/health');
           const status = await health.json();
           if (!health.ok || status.ok !== true) throw new Error('Database health check failed: ' + JSON.stringify(status));
