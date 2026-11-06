@@ -1,6 +1,7 @@
 import html from './index.html';
 import beauty from './beauty.html';
 import journal from './travel-blog.html';
+import about from './about.html';
 
 const TRANSPORT = ['rickshaw', 'auto'];
 const MODES = { rickshaw: 'রিকশা', auto: 'ব্যাটারি অটো / লেগুনা' };
@@ -457,7 +458,7 @@ export default {
     const url = new URL(request.url), path = url.pathname;
     const tempDomain = url.hostname.endsWith('.workers.dev');
     try {
-      if ((request.method === 'GET' || request.method === 'HEAD') && (path === '/' || path === '/index.html' || path === '/beauty' || path === '/beauty/' || path === '/travel-blog' || path === '/travel-blog/')) {
+      if ((request.method === 'GET' || request.method === 'HEAD') && (path === '/' || path === '/index.html' || path === '/beauty' || path === '/beauty/' || path === '/travel-blog' || path === '/travel-blog/' || path === '/about' || path === '/about/')) {
         const headers = {
           ...commonHeaders,
           'content-type': 'text/html; charset=utf-8',
@@ -468,7 +469,7 @@ export default {
             "connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
         };
         if (tempDomain) headers['x-robots-tag'] = 'noindex, nofollow';
-        const page = path.startsWith('/beauty') ? beauty : path.startsWith('/travel-blog') ? journal : html;
+        const page = path.startsWith('/beauty') ? beauty : path.startsWith('/travel-blog') ? journal : path.startsWith('/about') ? about : html;
         return new Response(request.method === 'HEAD' ? null : page, { headers });
       }
       if (request.method === 'GET' && path === '/robots.txt')
