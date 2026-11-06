@@ -1,7 +1,344 @@
-<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ভাড়া কত? | যাত্রার আগে ভাড়া জানুন</title><meta name="description" content="সাভার থেকে শুরু — কমিউনিটি ভিত্তিক রিকশা ভাড়ার তথ্য"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoT4d8R+RxZc=" crossorigin=""><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><style>body{margin:0;background:#f6faf7;color:#183b2c;font-family:system-ui,'Noto Sans Bengali',sans-serif}header{background:#0e6649;color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center}header strong{font-size:27px}.tag{font-size:13px;color:#c9f6e4}.wrap{max-width:1050px;margin:auto;padding:22px 16px}h1{font-size:clamp(26px,5vw,43px);margin:12px 0}.hero{background:#e8f5ed;padding:30px;border-radius:22px;margin-bottom:22px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:white;border:1px solid #dbe8df;border-radius:18px;padding:22px;box-shadow:0 4px 18px #1234}.card h2{margin-top:0}label{display:block;margin:12px 0 5px;font-weight:650}input,textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c4d6cb;border-radius:9px;font:inherit}button{background:#e66b26;color:white;border:0;padding:12px 20px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;margin-top:14px}button.secondary{background:#0e6649}.muted{color:#587465;font-size:14px}#map{height:350px;border-radius:14px;overflow:hidden}.result{margin-top:14px;padding:14px;background:#e9f6ee;border-radius:12px;min-height:22px}.hidden{display:none}footer{text-align:center;color:#587465;padding:32px}@media(max-width:720px){.grid{grid-template-columns:1fr}.hero{padding:22px}#map{height:290px}}</style></head><body><header><div><strong>🛺 ভাড়া কত?</strong><div class="tag">সাভার থেকে শুরু</div></div><span>Vara Koto</span></header><main class="wrap"><section class="hero"><h1>যাত্রার আগে ভাড়া জানুন</h1><p>রিকশা ভাড়ার কমিউনিটি-ভিত্তিক তথ্য — সাভার থেকে বাংলাদেশের পথে।</p><p class="muted">ভাড়ার হিসাব আনুমানিক; চূড়ান্ত দর ভিন্ন হতে পারে।</p></section><div class="grid"><section class="card"><h2>🔎 ভাড়া খুঁজুন</h2><form id="search"><label for="from">কোথা থেকে?</label><input id="from" required minlength="2" placeholder="যেমন: সাভার বাসস্ট্যান্ড"><label for="to">কোথায় যাবেন?</label><input id="to" required minlength="2" placeholder="যেমন: নবীনগর"><button>ভাড়া দেখুন</button></form><div class="result" id="fareResult" aria-live="polite">রুট লিখে অনুসন্ধান করুন।</div></section><section class="card"><h2>✍️ আপনার ভাড়া জানান</h2><form id="submit"><label>যাত্রা শুরু</label><input id="sfrom" required minlength="2"><label>গন্তব্য</label><input id="sto" required minlength="2"><label>কত টাকা দিয়েছেন?</label><input id="amount" type="number" min="1" max="5000" required><label>যাত্রার তারিখ</label><input id="date" type="date" required><label>অতিরিক্ত তথ্য (ঐচ্ছিক)</label><textarea id="note" maxlength="300" rows="2"></textarea><label><input id="consent" type="checkbox" required style="width:auto"> তথ্য যাচাইয়ের পর প্রকাশে সম্মতি দিচ্ছি</label><button class="secondary">ভাড়া জমা দিন</button></form><div id="submitResult" class="result" aria-live="polite">আপনার জমা দেওয়া তথ্য প্রথমে যাচাই করা হবে।</div></section></div><section class="card" style="margin-top:20px"><h2>🗺️ সাভারের মানচিত্র</h2><p class="muted">মানচিত্রে ট্যাপ করে দুটি অবস্থান চিহ্নিত করতে পারেন। এটি রাস্তার দূরত্ব নয়; সরলরেখার দূরত্ব।</p><div id="map"></div><div class="result" id="mapResult">প্রথমে যাত্রার শুরু, তারপর গন্তব্যে ট্যাপ করুন।</div><button class="secondary" id="clearMap" type="button">চিহ্ন মুছুন</button></section><section class="card" style="margin-top:20px"><h2>🔐 প্রশাসনিক যাচাই</h2><p class="muted">শুধু অনুমোদিত প্রশাসক জমা দেওয়া তথ্য পর্যালোচনা করতে পারবেন। গোপন টোকেন এই ব্রাউজারে সংরক্ষণ করা হয় না।</p><details><summary>অ্যাডমিন প্যানেল খুলুন</summary><label>অ্যাডমিন টোকেন</label><input id="adminToken" type="password" autocomplete="off"><button id="loadAdmin" type="button" class="secondary">অপেক্ষমাণ তথ্য দেখুন</button><div id="adminList" class="result"></div></details></section></main><footer>© Vara Koto · <a href="https://varakoto.wordpress.com">মূল ওয়েবসাইট</a> · OpenStreetMap contributors</footer><script>
-const $=id=>document.getElementById(id),escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));$('date').max=new Date().toISOString().slice(0,10);$('date').value=$('date').max;
-$('search').addEventListener('submit',async e=>{e.preventDefault();$('fareResult').textContent='খোঁজা হচ্ছে…';try{const r=await fetch('/api/fares?origin='+encodeURIComponent($('from').value)+'&destination='+encodeURIComponent($('to').value));const d=await r.json();$('fareResult').textContent=d.count?`মধ্যম ভাড়া: ৳${d.median} · সাধারণ ভাড়া: ৳${d.mode} · পরিসর: ৳${d.min}–৳${d.max} · ${d.count}টি অনুমোদিত তথ্য · সর্বশেষ: ${d.latest}। ${d.disclaimer}`:(d.message||d.error)}catch{$('fareResult').textContent='সংযোগ সমস্যা।'}});
-$('submit').addEventListener('submit',async e=>{e.preventDefault();$('submitResult').textContent='জমা হচ্ছে…';const data={origin:$('sfrom').value,destination:$('sto').value,fare:Number($('amount').value),travel_date:$('date').value,note:$('note').value,consent:$('consent').checked};try{const r=await fetch('/api/reports',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});const d=await r.json();$('submitResult').textContent=d.message||d.error||'সমস্যা হয়েছে।';if(r.ok)$('submit').reset()}catch{$('submitResult').textContent='সংযোগ সমস্যা।'}});
-let markers=[];if(window.L){const map=L.map('map').setView([23.858,90.267],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(map);map.on('click',e=>{if(markers.length===2){markers.forEach(m=>map.removeLayer(m));markers=[]}markers.push(L.marker(e.latlng).addTo(map).bindPopup(markers.length===0?'শুরু':'গন্তব্য'));if(markers.length===2){const a=markers[0].getLatLng(),b=markers[1].getLatLng();$('mapResult').textContent='সরলরেখার দূরত্ব: '+(a.distanceTo(b)/1000).toFixed(2)+' কিমি (রাস্তার দূরত্ব নয়)।'}else $('mapResult').textContent='এখন গন্তব্যে ট্যাপ করুন।'});$('clearMap').onclick=()=>{markers.forEach(m=>map.removeLayer(m));markers=[];$('mapResult').textContent='প্রথমে যাত্রার শুরু, তারপর গন্তব্যে ট্যাপ করুন।'}}else $('mapResult').textContent='মানচিত্র লোড হয়নি।';
-$('loadAdmin').onclick=async()=>{const token=$('adminToken').value;const r=await fetch('/api/admin/reports',{headers:{authorization:'Bearer '+token}});const d=await r.json();const el=$('adminList');el.replaceChildren();if(!r.ok){el.textContent=d.error||'প্রবেশ করা যায়নি';return}if(!d.reports.length){el.textContent='অপেক্ষমাণ তথ্য নেই।';return}for(const x of d.reports){const div=document.createElement('div');div.style='border-bottom:1px solid #ccc;padding:10px 0';div.textContent=`#${x.id} ${x.origin} → ${x.destination} ৳${x.fare} (${x.travel_date}) ${x.note||''} `;for(const status of ['approved','rejected']){const b=document.createElement('button');b.textContent=status==='approved'?'অনুমোদন':'বাতিল';b.onclick=async()=>{const r=await fetch('/api/admin/reports/'+x.id,{method:'PATCH',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({status})});if(r.ok)div.remove();else alert('পরিবর্তন হয়নি')};div.append(b)}el.append(div)}};
-</script></body></html>
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6448">
+<meta name="description" content="ভাড়া কত? — বাংলাদেশের কমিউনিটি-ভিত্তিক রিকশা ভাড়ার তথ্য। রুট খুঁজুন, অনুমোদিত ভাড়ার ধারণা জানুন, নিজের অভিজ্ঞতা জানান।">
+<title>ভাড়া কত? | Varakoto — যাত্রার আগে ভাড়া জানুন</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoT4d8R+RxZc=" crossorigin="">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root{--green:#106b4d;--deep:#073c2e;--orange:#e77731;--ink:#19382f;--muted:#607a6e;--cream:#f7f9f6;--line:#dbe7df;--shadow:0 12px 42px rgba(12,72,46,.085)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--cream);color:var(--ink);font-family:system-ui,"Noto Sans Bengali","Hind Siliguri",sans-serif;line-height:1.65}
+a{color:inherit}button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:wait}
+:focus-visible{outline:3px solid #e9985a;outline-offset:3px}
+.container{width:min(1160px,calc(100% - 40px));margin:auto}
+.site-header{position:relative;z-index:20;background:#fff;border-bottom:1px solid #edf1ec}
+.header-inner{display:flex;align-items:center;justify-content:space-between;min-height:82px;gap:20px}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;white-space:nowrap}
+.brand-mark{display:grid;place-items:center;background:#e8f6ed;border-radius:15px;width:49px;height:49px;font-size:27px}
+.brand-name{display:block;color:var(--deep);font-size:24px;font-weight:850;letter-spacing:-.6px;line-height:1.15}
+.brand-sub{display:block;font-size:10px;letter-spacing:2px;font-weight:750;color:#738b7d}
+.nav{display:flex;align-items:center;gap:25px}
+.nav a{font-size:14px;font-weight:700;text-decoration:none;color:#4b685b}
+.nav a:hover{color:var(--green)}.nav .nav-cta{background:var(--green);color:#fff;padding:12px 19px;border-radius:12px}
+.hero{background:linear-gradient(126deg,#eef8f0 0%,#f5faf6 54%,#fffbf3 100%);border-bottom:1px solid #e4ede5;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1.07fr .93fr;gap:60px;align-items:center;min-height:505px;padding-top:66px;padding-bottom:66px}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;background:#dff3e7;border:1px solid #cce9d7;color:#146748;border-radius:50px;padding:7px 15px;font-size:12px;font-weight:800;letter-spacing:.15px}
+.dot{width:8px;height:8px;background:#21a66c;border-radius:50%}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:clamp(36px,5.3vw,66px);line-height:1.2;color:#103e2e;letter-spacing:-1.8px;margin:20px 0}
+h1 .orange{color:var(--orange)}.hero p{font-size:18px;line-height:1.85;color:#577568;max-width:560px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:27px}
+.btn{border:0;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:14px 22px;font-weight:800;font-size:15px;text-decoration:none;transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--green);color:#fff}.btn-primary:hover{background:#07543a}
+.btn-orange{background:var(--orange);color:white}.btn-quiet{background:#fff;color:#24644a;border:1px solid #d7e7db}
+.hero-foot{display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#5f7b6a;margin-top:27px;font-weight:700}
+.hero-foot span:before{content:"✓";color:#16885a;margin-right:6px}
+.route-illustration{min-height:335px;position:relative;display:grid;place-items:center}
+.route-circle{width:min(100%,440px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 42% 35%,#dcf2e4 0 25%,#c8ead7 75%,#bce4ca 100%);display:grid;place-items:center;position:relative;border:1px solid #cfebda}
+.route-circle:before,.route-circle:after{content:"";position:absolute;border:2px dashed #a1d2b4;border-radius:50%;inset:28px}
+.route-circle:after{inset:59px;border-color:#c0e6cf}
+.route-float{z-index:2;position:relative;background:#fff;box-shadow:0 18px 55px #165c3540;border-radius:21px;width:min(87%,335px);padding:24px 22px}
+.mini-caption{font-size:11px;color:#7b9186;text-transform:uppercase;font-weight:800;letter-spacing:.5px;margin:0 0 17px}
+.journey{display:grid;grid-template-columns:22px 1fr;gap:10px 12px;align-items:center}
+.journey .point{display:grid;place-items:center;color:white;font-size:10px;width:20px;height:20px;border-radius:50%;background:var(--green)}
+.journey .point.end{background:var(--orange)}.journey .line{height:23px;border-left:2px dashed #a2cead;margin-left:9px}
+.journey strong{font-size:16px;color:#173e2e}.journey small{display:block;color:#879e91;font-size:12px}
+.route-ribbon{margin-top:21px;padding:12px 13px;background:#eef8f2;border-radius:10px;color:#38775a;font-weight:750;font-size:12px}
+.section{padding:78px 0}.section-small{padding:42px 0}.kicker{font-weight:850;color:#258b60;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:8px}
+.section-title{font-size:clamp(26px,3.5vw,38px);line-height:1.25;margin:0 0 12px;color:#123f2e}
+.section-desc{max-width:640px;color:var(--muted);font-size:15px}
+.panel{background:white;border:1px solid #e1eae3;border-radius:22px;box-shadow:var(--shadow);padding:28px}
+.two-col{display:grid;grid-template-columns:1.18fr .82fr;gap:25px;align-items:start}
+.form-title{display:flex;align-items:center;gap:10px;font-size:21px;color:#1a4d38;margin:0 0 7px}
+.icon-box{display:grid;place-items:center;background:#e4f5eb;border-radius:12px;width:39px;height:39px;font-size:21px}
+.field-grid{display:grid;grid-template-columns:1fr 42px 1fr;gap:10px;align-items:end}
+.field-grid .swap{width:42px;height:45px;background:#f0f6f0;border:1px solid #d9e7dc;border-radius:12px;color:var(--green);font-size:23px;line-height:1}
+.field-grid .swap:hover{background:#e1f1e6}
+label{display:block;font-weight:800;font-size:13px;color:#395e4d;margin:15px 0 7px}
+input:not([type=checkbox]),textarea{display:block;width:100%;background:#fcfefd;color:#163b2c;border:1px solid #d6e4d9;border-radius:12px;padding:13px 14px;outline:none;font-size:15px}
+input:focus,textarea:focus{border-color:#4da97d;box-shadow:0 0 0 3px #bdebd240}
+textarea{resize:vertical;min-height:80px}
+input::placeholder,textarea::placeholder{color:#9aaea1}
+.form-row{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:20px}
+.result{border:1px solid #dbeadc;background:#f2faf3;color:#275942;border-radius:13px;padding:15px 16px;margin-top:20px;font-size:14px;min-height:54px}
+.result strong{font-size:20px;color:var(--deep)}
+.result.error{color:#a53e2f;background:#fff3ee;border-color:#f6d8cb}
+.result.info{color:#527064}
+.helper{color:#799184;font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:25px;background:#edf7f0;color:#267c51;padding:5px 10px;font-size:11px;font-weight:800}
+.info-card{background:#0f5b42;color:#fff;border-radius:22px;padding:27px;position:relative;overflow:hidden}
+.info-card:before{content:"";position:absolute;width:170px;height:170px;border:26px solid #ffffff10;border-radius:50%;right:-82px;top:-85px}
+.info-card h3{font-size:23px;margin:13px 0 10px}.info-card p{color:#d2ecdf;font-size:14px;line-height:1.85}
+.info-list{margin:20px 0 0;padding:0;list-style:none}.info-list li{padding:10px 0;border-bottom:1px solid #ffffff22;color:#e2f4e9;font-size:13px}.info-list li:last-child{border-bottom:0}
+.route-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.route-pills button{background:#fff;border:1px solid #dae9de;border-radius:50px;color:#246348;padding:7px 12px;font-weight:700;font-size:12px}
+.soft-section{background:#edf5ef;border-top:1px solid #e1ebdf;border-bottom:1px solid #e1ebdf}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:31px}
+.feature{background:#fff;border:1px solid #e0eae1;border-radius:18px;padding:25px}
+.feature .feature-icon{font-size:25px;background:#e8f6eb;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;margin-bottom:16px}
+.feature h3{font-size:18px;margin-bottom:8px}.feature p{font-size:13px;color:#698276;margin-bottom:0}
+.map-grid{display:grid;grid-template-columns:.82fr 1.18fr;gap:24px;align-items:start}
+.map-box{background:#fff;border:1px solid #dce6df;border-radius:20px;overflow:hidden;box-shadow:var(--shadow)}
+#map{height:365px;background:#e9efe8}
+.map-bottom{padding:15px 18px;background:#fff;font-size:13px;color:#547364}
+.map-bottom button{float:right;background:#e8f4eb;color:#20674c;border:0;border-radius:8px;padding:6px 11px;font-weight:800}
+.callout{border-radius:20px;background:#fdf3e8;padding:22px;color:#815e38;font-size:14px;border:1px solid #f4e2ca}
+.check{display:flex;gap:11px;align-items:flex-start;margin-top:18px;color:#546b5d;font-size:13px}
+.check input{width:18px;height:18px;accent-color:#087e56;flex-shrink:0;margin-top:1px}
+.admin-toggle{margin-top:30px;background:#fff;border:1px solid #dce8df;border-radius:20px;padding:19px 22px}
+.admin-toggle summary{cursor:pointer;font-weight:800;color:#164c36}.admin-inner{padding-top:17px}
+.admin-list article{padding:12px 0;border-bottom:1px solid #e2eee6;font-size:13px}.admin-list article p{margin:5px 0}
+.admin-list button{margin:6px 7px 0 0;background:#14734e;border:0;color:#fff;border-radius:8px;padding:8px 11px}.admin-list button.reject{background:#9b5145}
+.footer{background:#0b3429;color:#d3e8db;padding:52px 0 30px}.footer-inner{display:flex;justify-content:space-between;gap:25px;flex-wrap:wrap}.footer strong{display:block;color:#fff;font-size:22px;margin-bottom:8px}.footer p{max-width:430px;font-size:13px;color:#a7c7b4}.footer a{color:#d3e8db;font-size:13px;text-decoration:none;margin-left:15px}.legal{font-size:12px;border-top:1px solid #ffffff20;margin-top:35px;padding-top:20px;color:#9dbdac}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+@media(max-width:920px){.hero-grid{gap:25px}.hero-grid{grid-template-columns:1fr 1fr}.nav{gap:12px}.nav a{font-size:12px}.route-circle{width:330px}}
+@media(max-width:700px){.container{width:min(100% - 28px,560px)}.header-inner{min-height:68px}.brand-mark{width:42px;height:42px;font-size:23px}.brand-name{font-size:21px}.nav a:not(.nav-cta){display:none}.nav .nav-cta{padding:10px 13px}.hero-grid{grid-template-columns:1fr;min-height:auto;gap:15px;padding:42px 0 46px}.hero h1{font-size:42px}.hero p{font-size:15px}.route-illustration{min-height:255px}.route-circle{width:290px}.route-float{width:265px;padding:18px}.section{padding:55px 0}.panel{padding:21px}.two-col,.map-grid,.three-col{grid-template-columns:1fr}.field-grid{grid-template-columns:1fr 34px 1fr;gap:6px}.field-grid .swap{width:34px}.form-row .btn{width:100%}.three-col{gap:12px}.feature{padding:21px}#map{height:305px}.footer a{display:inline-block;margin:0 15px 6px 0}}
+@media(max-width:360px){.hero h1{font-size:35px}.field-grid{grid-template-columns:1fr;gap:0}.field-grid .swap{transform:rotate(90deg);margin:6px auto 0}.actions .btn{flex:1}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+</head>
+<body>
+<header class="site-header">
+ <div class="container header-inner">
+  <a class="brand" href="/" aria-label="ভাড়া কত? হোম">
+   <span class="brand-mark" aria-hidden="true">🛺</span><span><span class="brand-name">ভাড়া কত?</span><span class="brand-sub">VARAKOTO · BANGLADESH</span></span>
+  </a>
+  <nav class="nav" aria-label="প্রধান নেভিগেশন">
+   <a href="#search-fare">ভাড়া খুঁজুন</a><a href="#how">কীভাবে কাজ করে</a><a href="#map-section">মানচিত্র</a><a href="#report" class="nav-cta">ভাড়া জানান ↗</a>
+  </nav>
+ </div>
+</header>
+<main>
+<section class="hero">
+ <div class="container hero-grid">
+  <div>
+   <span class="eyebrow"><span class="dot"></span> বাংলাদেশের যাত্রীদের জন্য</span>
+   <h1>যাত্রার আগে<br><span class="orange">ভাড়া জানুন।</span></h1>
+   <p>কত ভাড়া দেওয়া উচিত, তা নিয়ে আর অনুমান নয়। অন্য যাত্রীদের যাচাই করা অভিজ্ঞতা থেকে রিকশা ভাড়ার ধারণা নিন, নিজের অভিজ্ঞতাও জানান।</p>
+   <div class="actions"><a class="btn btn-primary" href="#search-fare">🔎 ভাড়া খুঁজুন <span aria-hidden="true">→</span></a><a class="btn btn-quiet" href="#report">✍️ ভাড়া জানান</a></div>
+   <div class="hero-foot"><span>কমিউনিটির তথ্য</span><span>যাচাই করা রিপোর্ট</span><span>বাংলাদেশজুড়ে</span></div>
+  </div>
+  <div class="route-illustration" aria-hidden="true">
+   <div class="route-circle">
+    <div class="route-float">
+     <p class="mini-caption">একটি যাত্রা, সঠিক ধারণা</p>
+     <div class="journey">
+      <span class="point">●</span><div><strong>যাত্রার শুরু</strong><small>আপনার অবস্থান লিখুন</small></div>
+      <span class="line"></span><div></div>
+      <span class="point end">●</span><div><strong>আপনার গন্তব্য</strong><small>যেখানে যেতে চান</small></div>
+     </div>
+     <div class="route-ribbon">ভাড়া নির্ধারণ করবে অনুমোদিত যাত্রার তথ্য</div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+<section id="search-fare" class="section container">
+ <div class="kicker">FARE SEARCH</div>
+ <h2 class="section-title">আপনার রুটের ভাড়া খুঁজুন</h2>
+ <p class="section-desc">নিচের দুটি স্থান লিখুন। এই রুটে অনুমোদিত রিপোর্ট থাকলে আমরা আনুমানিক ভাড়া, পরিসর ও তথ্যের সংখ্যা দেখাব।</p>
+ <div class="two-col" style="margin-top:27px">
+  <div class="panel">
+   <h3 class="form-title"><span class="icon-box">🔎</span> রুট অনুসন্ধান</h3>
+   <p class="helper">একই বানানে জায়গার নাম লিখলে ফলাফল খুঁজে পাওয়া সহজ হয়।</p>
+   <form id="search" novalidate>
+    <div class="field-grid">
+     <div><label for="origin">কোথা থেকে?</label><input id="origin" name="origin" minlength="2" maxlength="90" placeholder="যেমন: সাভার বাসস্ট্যান্ড" required autocomplete="off"></div>
+     <button id="swap" class="swap" type="button" aria-label="শুরুর স্থান এবং গন্তব্য অদলবদল">⇄</button>
+     <div><label for="destination">কোথায় যাবেন?</label><input id="destination" name="destination" minlength="2" maxlength="90" placeholder="যেমন: নবীনগর" required autocomplete="off"></div>
+    </div>
+    <div class="form-row"><button id="searchButton" class="btn btn-primary" type="submit">ভাড়া দেখুন <span aria-hidden="true">→</span></button><span class="helper">কোনো কল্পিত ভাড়া দেখানো হয় না</span></div>
+   </form>
+   <div id="fareResult" class="result info" role="status" aria-live="polite">রুট লিখে অনুসন্ধান করুন।</div>
+   <div id="knownRoutes" class="route-pills" aria-label="অনুমোদিত রুট" hidden></div>
+  </div>
+  <aside class="info-card">
+   <span class="pill" style="background:#ffffff21;color:#e6faec">আমাদের প্রতিশ্রুতি</span>
+   <h3>স্বচ্ছ তথ্য, আরও ভালো যাত্রা</h3>
+   <p>ভাড়া কত? কোনো সরকারি ভাড়া নির্ধারণকারী নয়। এটি যাত্রীদের দেওয়া তথ্য থেকে একটি বাস্তবসম্মত ধারণা তৈরির উদ্যোগ।</p>
+   <ul class="info-list"><li>✓ শুধু অনুমোদিত রিপোর্টের হিসাব</li><li>✓ মাঝামাঝি ভাড়া ও সর্বনিম্ন–সর্বোচ্চ পরিসর</li><li>✓ রিপোর্ট না থাকলে স্পষ্টভাবে জানানো হবে</li><li>✓ সাভার থেকে শুরু, লক্ষ্য পুরো বাংলাদেশ</li></ul>
+  </aside>
+ </div>
+</section>
+<section id="how" class="section soft-section">
+ <div class="container">
+  <div class="kicker">HOW IT WORKS</div><h2 class="section-title">সবাই মিলে তৈরি করি ভাড়ার তথ্য</h2>
+  <p class="section-desc">একটি ভাড়ার রিপোর্ট অন্য অনেক যাত্রীর কাজে আসতে পারে। প্রক্রিয়াটি সহজ এবং স্বচ্ছ।</p>
+  <div class="three-col">
+   <div class="feature"><div class="feature-icon">📍</div><h3>১. রুট লিখুন</h3><p>আপনার শুরুর স্থান ও গন্তব্য লিখে অনুমোদিত ভাড়ার তথ্য খুঁজুন।</p></div>
+   <div class="feature"><div class="feature-icon">🛺</div><h3>২. অভিজ্ঞতা জানান</h3><p>আপনি যে রিকশা ভাড়া দিয়েছেন, তার পরিমাণ ও যাত্রার তারিখ জমা দিন।</p></div>
+   <div class="feature"><div class="feature-icon">✅</div><h3>৩. যাচাইয়ের পর প্রকাশ</h3><p>প্রশাসক অনুমোদন দিলে রিপোর্টটি ভবিষ্যৎ ভাড়ার হিসাবের অংশ হবে।</p></div>
+  </div>
+ </div>
+</section>
+<section id="report" class="section container">
+ <div class="two-col">
+  <div>
+   <div class="kicker">SHARE YOUR FARE</div><h2 class="section-title">আপনার ভাড়ার অভিজ্ঞতা জানান</h2>
+   <p class="section-desc">আপনার দেওয়া তথ্য যাচাইয়ের পরই ব্যবহার করা হবে। সঠিক তথ্য দিয়ে অন্য যাত্রীদের সহায়তা করুন।</p>
+   <div class="callout" style="margin-top:26px"><strong>জেনে রাখুন</strong><p style="margin:7px 0 0">আপনার নাম, ফোন বা ইমেইল লাগবে না। অপব্যবহার ঠেকাতে সীমিত হারে তথ্য জমার ব্যবস্থা আছে। ব্যক্তিগত বা সংবেদনশীল তথ্য নোটে লিখবেন না।</p></div>
+  </div>
+  <div class="panel">
+   <h3 class="form-title"><span class="icon-box">✍️</span> নতুন ভাড়া জমা দিন</h3>
+   <form id="reportForm">
+    <label for="rOrigin">যাত্রার শুরু</label><input id="rOrigin" required minlength="2" maxlength="90" placeholder="যেমন: সাভার বাসস্ট্যান্ড">
+    <label for="rDestination">গন্তব্য</label><input id="rDestination" required minlength="2" maxlength="90" placeholder="যেমন: নবীনগর">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+     <div><label for="rFare">ভাড়া (৳)</label><input id="rFare" type="number" min="1" max="5000" step="1" required placeholder="টাকা"></div>
+     <div><label for="rDate">যাত্রার তারিখ</label><input id="rDate" type="date" required></div>
+    </div>
+    <label for="rNote">অতিরিক্ত তথ্য <span class="helper">(ঐচ্ছিক)</span></label><textarea id="rNote" maxlength="300" placeholder="যেমন: বৃষ্টি বা বেশি যানজট ছিল"></textarea>
+    <label class="check"><input id="rConsent" type="checkbox" required><span>আমি নিশ্চিত করছি এটি আমার অভিজ্ঞতার তথ্য এবং যাচাইয়ের পর ব্যবহারে সম্মত।</span></label>
+    <div class="form-row"><button id="reportButton" type="submit" class="btn btn-orange">ভাড়া জমা দিন <span aria-hidden="true">→</span></button></div>
+   </form>
+   <div id="reportResult" class="result info" role="status" aria-live="polite">আপনার তথ্য জমা হলে তা প্রথমে যাচাই করা হবে।</div>
+  </div>
+ </div>
+</section>
+<section id="map-section" class="section soft-section">
+ <div class="container map-grid">
+  <div>
+   <div class="kicker">EXPLORE BANGLADESH</div><h2 class="section-title">মানচিত্রে জায়গা দেখুন</h2>
+   <p class="section-desc">মানচিত্রে পরপর দুটি জায়গায় ট্যাপ করে তাদের মধ্যে সরলরেখার দূরত্ব দেখতে পারবেন। এটি রাস্তার দূরত্ব বা রিকশার ভাড়া গণনা করে না।</p>
+   <p class="helper">আপনি বাংলাদেশের যেকোনো অঞ্চলে মানচিত্র সরিয়ে দেখতে পারেন।</p>
+   <div class="callout" style="margin-top:22px">📌 <strong>গুরুত্বপূর্ণ:</strong> সরলরেখার দূরত্ব থেকে আমরা কোনো ভাড়া অনুমান করি না। ভাড়া শুধুমাত্র অনুমোদিত যাত্রী রিপোর্টের ভিত্তিতে দেখানো হয়।</div>
+  </div>
+  <div class="map-box">
+   <div id="map" role="region" aria-label="বাংলাদেশের ইন্টারঅ্যাকটিভ মানচিত্র"></div>
+   <div class="map-bottom"><button id="resetMap" type="button">আবার শুরু</button><span id="mapStatus" role="status" aria-live="polite">মানচিত্রে প্রথম অবস্থান নির্বাচন করুন।</span></div>
+  </div>
+ </div>
+</section>
+<section class="section-small container" aria-labelledby="adminheading">
+ <details class="admin-toggle"><summary id="adminheading">🔐 প্রশাসনিক যাচাই প্যানেল</summary>
+  <div class="admin-inner"><p class="helper">শুধু অনুমোদিত অ্যাডমিনের জন্য। টোকেন ব্রাউজারে সংরক্ষণ করা হয় না।</p>
+   <label for="adminToken">অ্যাডমিন টোকেন</label><input id="adminToken" type="password" autocomplete="off" placeholder="নিরাপদ টোকেন লিখুন">
+   <div class="form-row"><button type="button" class="btn btn-primary" id="adminLoad">অপেক্ষমাণ রিপোর্ট দেখুন</button></div>
+   <div id="adminList" class="result info" aria-live="polite">অ্যাডমিন টোকেন দিয়ে রিপোর্ট লোড করুন।</div>
+  </div>
+ </details>
+</section>
+</main>
+<footer class="footer">
+ <div class="container"><div class="footer-inner">
+  <div><strong>🛺 ভাড়া কত?</strong><p>যাত্রার আগে ভাড়া জানুন। যাত্রীদের অভিজ্ঞতার ভিত্তিতে বাংলাদেশে আরও স্বচ্ছ রিকশা ভাড়ার তথ্য তৈরির একটি উদ্যোগ।</p></div>
+  <div><a href="#search-fare">ভাড়া খুঁজুন</a><a href="#report">ভাড়া জানান</a><a href="#how">কীভাবে কাজ করে</a></div>
+ </div>
+ <div class="legal">© <span id="year">2026</span> Vara Koto · বাংলাদেশ · ভাড়ার তথ্য আনুমানিক, সরকারি নির্ধারিত নয়। মানচিত্র © OpenStreetMap contributors।</div>
+ </div>
+</footer>
+<script>
+(function(){
+ 'use strict';
+ const byId = id => document.getElementById(id);
+ const show = (id, message, type) => {const el = byId(id); el.className = 'result '+(type||'info'); el.textContent = message;};
+ const amount = n => '৳'+new Intl.NumberFormat('bn-BD',{maximumFractionDigits:1}).format(n);
+ const date = new Date(); const localToday = new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ byId('rDate').max = localToday; byId('rDate').value = localToday;
+ byId('year').textContent = String(date.getFullYear());
+ byId('swap').addEventListener('click', () => {
+  const a = byId('origin'), b = byId('destination'); [a.value,b.value] = [b.value,a.value];
+ });
+ async function requestJSON(path, options) {
+  const res = await fetch(path,options);
+  let body; try { body = await res.json(); } catch { throw new Error('সার্ভার থেকে সঠিক উত্তর পাওয়া যায়নি।'); }
+  if (!res.ok) throw new Error(body.error || 'অনুরোধ সম্পন্ন হয়নি।');
+  return body;
+ }
+ byId('search').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.currentTarget; if (!form.reportValidity()) return;
+  const origin = byId('origin').value.trim(), destination = byId('destination').value.trim();
+  if(origin.toLowerCase() === destination.toLowerCase()){show('fareResult','শুরুর স্থান ও গন্তব্য আলাদা হতে হবে।','error');return;}
+  const button = byId('searchButton'); button.disabled=true; show('fareResult','অনুমোদিত ভাড়ার তথ্য খোঁজা হচ্ছে…','info');
+  try {
+   const data = await requestJSON('/api/fares?origin='+encodeURIComponent(origin)+'&destination='+encodeURIComponent(destination));
+   if (!data.count) { show('fareResult',data.message || 'এই রুটে এখনো তথ্য নেই।','info');return; }
+   const el=byId('fareResult');el.className='result';
+   el.replaceChildren();
+   const strong=document.createElement('strong');strong.textContent='মধ্যম ভাড়া '+amount(data.median);
+   const rest=document.createElement('div');rest.textContent='বেশি দেখা ভাড়া '+amount(data.mode)+' · পরিসর '+amount(data.min)+'–'+amount(data.max)+' · '+new Intl.NumberFormat('bn-BD').format(data.count)+'টি অনুমোদিত রিপোর্ট';
+   const small=document.createElement('div');small.className='helper';small.style.marginTop='8px';small.textContent=data.disclaimer||'এই ভাড়া আনুমানিক।';
+   el.append(strong,rest,small);
+  } catch(err) { show('fareResult',err.message || 'সংযোগ সমস্যা।','error'); }
+  finally { button.disabled=false; }
+ });
+ byId('reportForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form=e.currentTarget;if(!form.reportValidity())return;
+  const button=byId('reportButton');button.disabled=true;show('reportResult','তথ্য জমা হচ্ছে…','info');
+  try {
+   const data = await requestJSON('/api/reports',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({origin:byId('rOrigin').value,destination:byId('rDestination').value,
+     fare:Number(byId('rFare').value),travel_date:byId('rDate').value,
+     note:byId('rNote').value,consent:byId('rConsent').checked})
+   });
+   show('reportResult',data.message || 'জমা হয়েছে।');
+   form.reset(); byId('rDate').value=localToday;
+  } catch(err) {show('reportResult',err.message || 'সংযোগ সমস্যা।','error');}
+  finally {button.disabled=false;}
+ });
+ requestJSON('/api/routes').then(data=>{
+  if(!Array.isArray(data.routes) || !data.routes.length) return;
+  const el=byId('knownRoutes');el.hidden=false;el.replaceChildren();
+  for(const route of data.routes){
+   const b=document.createElement('button');b.type='button';
+   b.textContent=route.origin+' → '+route.destination;
+   b.addEventListener('click',()=>{byId('origin').value=route.origin;byId('destination').value=route.destination;byId('search').requestSubmit();});
+   el.append(b);
+  }
+ }).catch(()=>{});
+ window.addEventListener('load', () => {
+  if(!window.L){byId('mapStatus').textContent='মানচিত্র লোড হয়নি। ইন্টারনেট সংযোগ যাচাই করুন।';return;}
+  const map=L.map('map',{scrollWheelZoom:false}).setView([23.8103,90.4125],8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(map);
+  let markers=[];
+  map.on('click',ev=>{
+   if(markers.length===2){markers.forEach(m=>map.removeLayer(m));markers=[];}
+   const start=markers.length===0;
+   const marker=L.marker(ev.latlng).addTo(map).bindPopup(start?'শুরু':'গন্তব্য');
+   markers.push(marker);
+   if(markers.length===2){
+    const distance=markers[0].getLatLng().distanceTo(markers[1].getLatLng())/1000;
+    byId('mapStatus').textContent='সরলরেখার দূরত্ব: '+new Intl.NumberFormat('bn-BD',{maximumFractionDigits:2}).format(distance)+' কিমি (রাস্তার দূরত্ব নয়)।';
+   } else {byId('mapStatus').textContent='এখন গন্তব্য নির্বাচন করুন।';}
+  });
+  byId('resetMap').addEventListener('click',()=>{
+   markers.forEach(m=>map.removeLayer(m));markers=[];
+   byId('mapStatus').textContent='মানচিত্রে প্রথম অবস্থান নির্বাচন করুন।';
+  });
+ });
+ byId('adminLoad').addEventListener('click',async()=>{
+  const token=byId('adminToken').value.trim();
+  if(!token){show('adminList','অ্যাডমিন টোকেন দিন।','error');return;}
+  show('adminList','রিপোর্ট লোড হচ্ছে…','info');
+  try {
+   const d=await requestJSON('/api/admin/reports',{headers:{authorization:'Bearer '+token}});
+   const el=byId('adminList');el.className='admin-list';el.replaceChildren();
+   if(!d.reports.length){el.className='result info';el.textContent='অপেক্ষমাণ রিপোর্ট নেই।';return;}
+   d.reports.forEach(row=>{
+    const article=document.createElement('article');const title=document.createElement('strong');
+    title.textContent='#'+row.id+' '+row.origin+' → '+row.destination+' · '+amount(row.fare);
+    const p=document.createElement('p');p.textContent=row.travel_date+' · '+(row.note||'অতিরিক্ত তথ্য নেই');
+    article.append(title,p);
+    [['approved','অনুমোদন',false],['rejected','বাতিল',true]].forEach(item=>{
+     const button=document.createElement('button');button.type='button';button.className=item[2]?'reject':'';
+     button.textContent=item[1];button.addEventListener('click',async()=>{
+      button.disabled=true;
+      try {
+       const r=await requestJSON('/api/admin/reports/'+row.id,{method:'PATCH',
+        headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({status:item[0]})});
+       if(r.ok)article.remove();else throw new Error('রিপোর্টটি বদলানো যায়নি।');
+      }catch(err){button.disabled=false;alert(err.message);}
+     });article.append(button);
+    });el.append(article);
+   });
+  }catch(err){show('adminList',err.message || 'অ্যাডমিন প্রবেশ ব্যর্থ।','error');}
+ });
+})();
+</script>
+</body>
+</html>
