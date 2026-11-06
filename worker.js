@@ -190,32 +190,45 @@ async function places(url) {
     requires_map_pin:p.lat==null
   }));
   if(query.length<3)return json({ locations:local, attribution:'Local route directory' });
+  // Preserve very small local landmarks even when an external geocoder is slow or unavailable.
   const upstream = new URL('https://photon.komoot.io/api/');
   upstream.searchParams.set('q', query);
-  upstream.searchParams.set('limit', '7');
+  upstream.searchParams.set('limit', '12');
   upstream.searchParams.set('bbox', '88,20,93,27');
-  const response = await fetch(upstream.toString(), {
-    headers: { accept: 'application/json', 'accept-language': 'en' },
-    cf: { cacheTtl: 1800, cacheEverything: true },
-    signal: AbortSignal.timeout(8000)
-  });
-  if (!response.ok) return json({ locations: local, fallback:true }, 200);
-  const data = await response.json();
-  const seen = new Set();
-  const locations = [...local];
-  for (const known of local)seen.add(known.label);
-  for (const f of data.features || []) {
-    const p = f.properties || {};
-    const coords = f.geometry?.coordinates;
-    if (!Array.isArray(coords) || !inBangladesh(Number(coords[1]), Number(coords[0]))) continue;
-    if (p.countrycode && p.countrycode.toUpperCase() !== 'BD') continue;
-    const label = placeNames(p);
-    if (!label || seen.has(label)) continue;
-    seen.add(label);
-    locations.push({ name: String(p.name || label), label, lat: Number(coords[1]), lon: Number(coords[0]) });
-    if (locations.length >= 7) break;
+  if (local.length || /সাভার|savar|চাপাইন|chapain|colony|কলোনি|কলোনী|crp|সিআরপি/i.test(query)) {
+    upstream.searchParams.set('lat', '23.85064');
+    upstream.searchParams.set('lon', '90.25905');
+    upstream.searchParams.set('zoom', '14');
   }
-  return json({ locations, attribution: '© OpenStreetMap contributors / Photon' }, 200, 'public, max-age=300');
+  const seen = new Set(local.map(p => p.label));
+  const locations = [...local];
+  try {
+    const response = await fetch(upstream.toString(), {
+      headers: { accept: 'application/json', 'accept-language': 'en' },
+      cf: { cacheTtl: 1800, cacheEverything: true },
+      signal: AbortSignal.timeout(7000)
+    });
+    if (!response.ok) throw Error('Photon ' + response.status);
+    const data = await response.json();
+    for (const f of data.features || []) {
+      const p = f.properties || {};
+      const coords = f.geometry?.coordinates;
+      if (!Array.isArray(coords) || !inBangladesh(Number(coords[1]), Number(coords[0]))) continue;
+      if (p.countrycode && p.countrycode.toUpperCase() !== 'BD') continue;
+      const label = placeNames(p);
+      if (!label || seen.has(label)) continue;
+      seen.add(label);
+      locations.push({ name: String(p.name || label), label, lat: Number(coords[1]), lon: Number(coords[0]) });
+      if (locations.length >= 9) break;
+    }
+    return json({ locations, attribution: '© OpenStreetMap contributors / Photon' }, 200, 'public, max-age=120');
+  } catch (error) {
+    console.warn('Photon geocoding temporarily unavailable', error?.message || error);
+    return json({
+      locations, fallback: true,
+      message: locations.length ? 'স্থানীয় তালিকার তথ্য দেখানো হচ্ছে।' : 'স্থান খোঁজার সেবা পাওয়া যাচ্ছে না। মানচিত্রে পিন দিতে পারেন।'
+    }, 200);
+  }
 }
 async function reverse(url) {
   const lat = Number(url.searchParams.get('lat')), lon = Number(url.searchParams.get('lon'));
