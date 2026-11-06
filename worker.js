@@ -1,4 +1,6 @@
 import html from './index.html';
+import beauty from './beauty.html';
+import journal from './travel-blog.html';
 
 const TRANSPORT = ['rickshaw', 'auto'];
 const MODES = { rickshaw: 'রিকশা', auto: 'ব্যাটারি অটো / লেগুনা' };
@@ -7,13 +9,13 @@ const BD = { minLat: 20, maxLat: 27, minLon: 88, maxLon: 93 };
 // Fares explicitly supplied by the project owner. No journey dates were provided.
 // These are route references, NOT government tariffs or independently verified rides.
 const LANDMARKS = [
-  { id:'savar_new_market', name:'সাভার নিউ মার্কেট', aliases:['savar new market','new market','newmarket','সাভার নিউ মার্কেট','সাভার নিউমার্কেট','নিউ মার্কেট','নিউমার্কেট'], lat:23.85068, lon:90.25932 },
+  { id:'savar_new_market', name:'সাভার নিউ মার্কেট', aliases:['savar new market','new market','newmarket','সাভার নিউ মার্কেট','সাভার নিউমার্কেট','নিউ মার্কেট','নিউমার্কেট'], lat:23.8506418, lon:90.2590522 },
   { id:'chapain', name:'চাপাইন, সাভার', aliases:['chapain','চাপাইন','চাপাই','চাপাইন সাভার'], lat:null, lon:null },
   { id:'dewga', name:'দেওগা বাজার, সাভার', aliases:['dewga bazar','dewga bazaar','dewga','deoga bazar','deoga bazaar','দেওগা বাজার','দেওগাঁ বাজার','দেউগা বাজার','দেওগা'], lat:null, lon:null },
-  { id:'crp', name:'সিআরপি, সাভার', aliases:['crp','crp savar','centre for the rehabilitation of the paralysed','সিআরপি','সিআরপি সাভার'], lat:null, lon:null },
-  { id:'radio_colony', name:'রেডিও কলোনি, সাভার', aliases:['radio colony','radio colony savar','রেডিও কলোনি','রেডিও কলোনী'], lat:null, lon:null },
+  { id:'crp', name:'সিআরপি, সাভার', aliases:['crp','crp savar','centre for the rehabilitation of the paralysed','সিআরপি','সিআরপি সাভার'], lat:23.8545053, lon:90.2602316 },
+  { id:'radio_colony', name:'রেডিও কলোনি, সাভার', aliases:['radio colony','radio colony savar','savar colony','colony','রেডিও কলোনি','রেডিও কলোনী','কলোনি','কলোনী'], lat:23.858713, lon:90.262322 },
   { id:'shyamoli_square', name:'শ্যামলী স্কয়ার, ঢাকা', aliases:['shyamoli square','shyamoli square dhaka','শ্যামলী স্কয়ার','শ্যামলী স্কয়ার'], lat:23.77445, lon:90.3654 },
-  { id:'shia_masjid', name:'শিয়া মসজিদ, ঢাকা', aliases:['shia masjid','shia mosque','shia masjid dhaka','শিয়া মসজিদ','শিয়া মসজিদ','শিয়া মসজিদ ঢাকা'], lat:null, lon:null }
+  { id:'shia_masjid', name:'শিয়া মসজিদ, ঢাকা', aliases:['shia masjid','shia mosque','shia masjid dhaka','শিয়া মসজিদ','শিয়া মসজিদ','শিয়া মসজিদ ঢাকা'], lat:23.7620647, lon:90.3591241 }
 ];
 const ROUTE_GUIDES = [
   {key:'newmarket_chapain',from:'savar_new_market',to:'chapain',entries:[['rickshaw',20,'per_ride','rickshaw'],['auto',10,'per_person','battery_auto']]},
@@ -455,18 +457,19 @@ export default {
     const url = new URL(request.url), path = url.pathname;
     const tempDomain = url.hostname.endsWith('.workers.dev');
     try {
-      if ((request.method === 'GET' || request.method === 'HEAD') && (path === '/' || path === '/index.html')) {
+      if ((request.method === 'GET' || request.method === 'HEAD') && (path === '/' || path === '/index.html' || path === '/beauty' || path === '/beauty/' || path === '/travel-blog' || path === '/travel-blog/')) {
         const headers = {
           ...commonHeaders,
           'content-type': 'text/html; charset=utf-8',
           'cache-control': 'public, max-age=120',
           'content-security-policy': "default-src 'self'; script-src 'self' https://unpkg.com 'unsafe-inline'; " +
             "style-src 'self' https://unpkg.com 'unsafe-inline'; " +
-            "img-src 'self' data: https://*.tile.openstreetmap.org https://*.wordpress.com https://*.wp.com; " +
+            "img-src 'self' data: https://*.tile.openstreetmap.org https://*.wordpress.com https://*.wp.com https://upload.wikimedia.org; " +
             "connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
         };
         if (tempDomain) headers['x-robots-tag'] = 'noindex, nofollow';
-        return new Response(request.method === 'HEAD' ? null : html, { headers });
+        const page = path.startsWith('/beauty') ? beauty : path.startsWith('/travel-blog') ? journal : html;
+        return new Response(request.method === 'HEAD' ? null : page, { headers });
       }
       if (request.method === 'GET' && path === '/robots.txt')
         return new Response(tempDomain ? 'User-agent: *\nDisallow: /\n' : 'User-agent: *\nAllow: /\n', {
