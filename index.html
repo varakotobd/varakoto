@@ -314,11 +314,11 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  const $ = id => document.getElementById(id);
  const lang = new Intl.NumberFormat('bn-BD',{maximumFractionDigits:1});
  const money = value => '৳' + lang.format(value);
- const modes = ['rickshaw','auto','cng','easybike'];
- const modeLabel = {rickshaw:'রিকশা',auto:'ব্যাটারি অটো',cng:'সিএনজি',easybike:'ইজিবাইক'};
+ const modes = ['rickshaw','auto'];
+ const modeLabel = {rickshaw:'রিকশা',auto:'ব্যাটারি অটো / লেগুনা'};
  let activeMode = 'rickshaw';
  let suggestionsOpen = null;
- let map = null, mapLine = null, markers = [], latestTrip = null;
+ let map = null, mapLine = null, markers = [], latestTrip = null, mapPickTarget = null;
  let selected = {from:null,to:null}, reportCoordinates = {from:null,to:null};
  let lastResults = {};
  let searchId = 0;
@@ -405,13 +405,14 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  });
  async function resolveLocation(type){
    if(pointValue(type))return pointValue(type);
+   if(selected[type]?.requires_map_pin)return null;
    const input=$(type==='from'?'fromInput':'toInput');
    const query=input.value.trim();
    if(query.length<3)return null;
    try{
      const response=await api('/api/places?q='+encodeURIComponent(query));
      const first=response.locations?.[0];
-     if(first){
+     if(first && isCoord(first)){
        const plain=query.toLocaleLowerCase('bn');
        const names=[first.name,first.label].map(x=>String(x).toLocaleLowerCase('bn'));
        if(names.some(name=>name.includes(plain)||plain.includes(name))){
@@ -431,8 +432,36 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  }
  function loadMap(){
    if(map||!window.L)return;
-   map=L.map('map',{scrollWheelZoom:false}).setView([23.8103,90.4125],9);
-   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:18}).addTo(map);
+   map=L.map('map',{scrollWheelZoom:false}).setView([23.85068,90.25932],12);
+   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
+   map.on('click',async event=>{
+     if(!mapPickTarget)return;
+     const type=mapPickTarget;
+     const p={lat:event.latlng.lat,lon:event.latlng.lng};
+     const input=$(type==='from'?'fromInput':'toInput');
+     const label='মানচিত্রে পিন '+p.lat.toFixed(5)+', '+p.lon.toFixed(5);
+     input.value=label; selected[type]={...p,label,name:label};
+     mapPickTarget=null;
+     for(const b of [$('pickFrom'),$('pickTo')])b.setAttribute('aria-pressed','false');
+     fromHandler.hide();toHandler.hide();
+     if(isCoord(selected.from)&&isCoord(selected.to)){
+       drawMap(selected.from,selected.to,null);
+       $('tripForm').requestSubmit();
+     }else{
+       clearMap();
+       markers.push(L.circleMarker([p.lat,p.lon],{radius:8,weight:3,color:'#fff',fillColor:type==='from'?'#087952':'#ef9328',fillOpacity:1}).addTo(map));
+       setText('mapInfo','📍 '+(type==='from'?'পিকআপ':'ড্রপ')+' পিন বসানো হয়েছে');
+       setText('searchHint','মানচিত্রে অন্য অবস্থানটি বেছে নিন।');
+     }
+     try{
+       const response=await api('/api/reverse?lat='+p.lat+'&lon='+p.lon);
+       if(selected[type]?.lat===p.lat && selected[type]?.lon===p.lon &&
+          response.location?.label){
+         input.value=response.location.label.slice(0,90);
+         selected[type].name=input.value; selected[type].label=input.value;
+       }
+     }catch{}
+   });
  }
  function clearMap(){
    if(!map)return;
@@ -452,9 +481,41 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  }
  window.addEventListener('load',loadMap);
  $('mapReset').addEventListener('click',()=>{
-   clearMap();loadMap();if(map){map.setView([23.8103,90.4125],9);map.invalidateSize();}
-   setText('mapInfo','📍 বাংলাদেশ দেখানো হচ্ছে');
+   clearMap();loadMap();if(map){map.setView([23.85068,90.25932],12);map.invalidateSize();}
+   setText('mapInfo','📍 সাভারের মানচিত্র দেখানো হচ্ছে');
  });
+ function activateMapPick(type){
+   loadMap();
+   mapPickTarget=type;
+   $('pickFrom').setAttribute('aria-pressed',type==='from'?'true':'false');
+   $('pickTo').setAttribute('aria-pressed',type==='to'?'true':'false');
+   setText('mapInfo','📌 মানচিত্রে '+(type==='from'?'পিকআপ':'ড্রপ')+' জায়গায় ট্যাপ করুন');
+   setText('searchHint','মানচিত্রে ট্যাপ করে সঠিক জায়গা চিহ্নিত করুন।');
+   if(map)map.invalidateSize();
+ }
+ $('pickFrom').addEventListener('click',()=>activateMapPick('from'));
+ $('pickTo').addEventListener('click',()=>activateMapPick('to'));
+ async function loadExampleRoutes(){
+   try{
+     const response=await api('/api/routes');
+     for(const route of response.routes||[]){
+       const button=document.createElement('button');
+       button.type='button';
+       button.textContent=route.origin+' → '+route.destination;
+       button.addEventListener('click',()=>{
+         $('fromInput').value=route.origin;$('toInput').value=route.destination;
+         selected.from=route.origin_location||null;
+         selected.to=route.destination_location||null;
+         fromHandler.hide();toHandler.hide();
+         $('tripForm').requestSubmit();
+       });
+       $('sampleRoutes').append(button);
+     }
+   }catch{
+     setText('searchHint','লোকেশন লিখে ভাড়া দেখতে পারেন। উদাহরণ রুট এখন দেখানো যাচ্ছে না।');
+   }
+ }
+ loadExampleRoutes();
  $('useLocation').addEventListener('click',()=>{
    if(!navigator.geolocation){setText('searchHint','আপনার ব্রাউজারে লোকেশন সুবিধা নেই।');return;}
    setText('searchHint','আপনার অনুমতি নিয়ে অবস্থান নেওয়া হচ্ছে…');
@@ -513,8 +574,11 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      if(requestId!==searchId)return;
      lastResults=Object.fromEntries((fares.vehicles||[]).map(v=>[v.id,v]));
      for(const vehicle of fares.vehicles||[]){
-       setText('price-'+vehicle.id,vehicle.count?money(vehicle.median):'৳—');
-       setText('meta-'+vehicle.id,vehicle.count?lang.format(vehicle.count)+'টি অনুমোদিত তথ্য':'অনুমোদিত তথ্য নেই');
+       // Per-person and whole-vehicle fares are never combined.
+       const fare=vehicle.count?vehicle.median:vehicle.reference?.fare;
+       const basis=vehicle.count?vehicle.unit:vehicle.reference?.basis;
+       setText('price-'+vehicle.id,fare!=null?money(fare)+(basis==='per_person'?'/জন':''):'৳—');
+       setText('meta-'+vehicle.id,vehicle.count?lang.format(vehicle.count)+'টি যাচাই করা রিপোর্ট':vehicle.reference?'শেয়ার করা স্থানীয় ভাড়া • তারিখ নেই':'এই রুটে তথ্য নেই');
      }
      displaySelectedVehicle();
      if(isCoord(from)&&isCoord(to)){
@@ -549,17 +613,25 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    }
    const vehicle=lastResults[activeMode];
    if(!vehicle){
-     setStatus('fareStatus','আপনার যাত্রার রুট লিখুন। ভাড়ার তথ্য শুধু অনুমোদিত যাত্রী রিপোর্ট থেকে আসবে।');
+     setStatus('fareStatus','আপনার যাত্রার রুট লিখুন। কোনো অজানা ভাড়া আমরা অনুমান করে দেখাই না।');
      return;
    }
-   if(!vehicle.count){
-     setStatus('fareStatus',modeLabel[activeMode]+'—এই রুটে এখনো অনুমোদিত ভাড়ার রিপোর্ট নেই। আপনার যাত্রার ভাড়া জানালে তথ্য তৈরি হবে।');
-     return;
+   const ref=vehicle.reference;
+   const fareUnit=basis=>basis==='per_person'?' প্রতি যাত্রী':' পুরো গাড়ি';
+   if(vehicle.count){
+     let text=modeLabel[activeMode]+' • অনুমোদিত রিপোর্টের মধ্যম ভাড়া '+money(vehicle.median)+
+       fareUnit(vehicle.unit)+' • পরিসর '+money(vehicle.min)+'–'+money(vehicle.max)+
+       ' • '+lang.format(vehicle.count)+'টি যাচাই করা রিপোর্ট।';
+     if(ref)text+=' আগে শেয়ার করা স্থানীয় ভাড়া: '+money(ref.fare)+fareUnit(ref.basis)+' (তারিখ উল্লেখ নেই)।';
+     setStatus('fareStatus',text+' এগুলো সরকারি নির্ধারিত নয়।',false,true);
+   }else if(ref){
+     const vehicleName=ref.variant==='leguna'?'লেগুনা':ref.variant==='battery_auto'?'ব্যাটারি অটো':'রিকশা';
+     setStatus('fareStatus',vehicleName+': '+money(ref.fare)+fareUnit(ref.basis)+
+       ' — আপনার শেয়ার করা স্থানীয় তথ্য; কোনো যাত্রার তারিখ দেওয়া হয়নি, স্বাধীনভাবে যাচাই করা হয়নি।'+
+       (ref.note?' '+ref.note:'')+' এই ভাড়া সরকারি নির্ধারিত নয়।',false,true);
+   }else{
+     setStatus('fareStatus',modeLabel[activeMode]+': এই রুটে এখনো ভাড়ার তথ্য নেই। আপনার অভিজ্ঞতা জানাতে পারেন।');
    }
-   const note=modeLabel[activeMode]+' • মধ্যম ভাড়া '+money(vehicle.median)+
-     ' • পরিসর '+money(vehicle.min)+'–'+money(vehicle.max)+
-     ' • '+lang.format(vehicle.count)+'টি অনুমোদিত রিপোর্ট। এটি নিশ্চিত বা সরকারি নির্ধারিত ভাড়া নয়।';
-   setStatus('fareStatus',note,false,true);
  }
  document.querySelectorAll('.vehicle-card').forEach(card=>{
    card.addEventListener('click',()=>{activeMode=card.dataset.mode;displaySelectedVehicle();});
@@ -570,12 +642,34 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      reportCoordinates={from:latestTrip.from,to:latestTrip.to};
    }
    $('rMode').value=activeMode;
+   syncReportMode();
    $('share').scrollIntoView({behavior:'smooth',block:'start'});
    $('rFare').focus({preventScroll:true});
  });
  for(const [input,type] of [['rFrom','from'],['rTo','to']]){
    $(input).addEventListener('input',()=>{reportCoordinates[type]=null;});
  }
+ function syncReportMode(){
+   const auto=$('rMode').value==='auto';
+   $('rVariantGroup').hidden=!auto;
+   if(auto){
+     $('rBasis').value='per_person';
+   }else{
+     $('rBasis').value='per_ride';
+     $('rVariant').value='battery_auto';
+   }
+ }
+ $('rMode').addEventListener('change',syncReportMode);
+ $('rVariant').addEventListener('change',()=>{
+   if($('rVariant').value==='leguna')$('rBasis').value='per_person';
+ });
+ $('rBasis').addEventListener('change',()=>{
+   if($('rVariant').value==='leguna'&&$('rBasis').value==='per_ride'){
+     $('rBasis').value='per_person';
+     setStatus('reportStatus','লেগুনার ভাড়া প্রতি যাত্রী হিসাবে দিন।');
+   }
+ });
+ syncReportMode();
  $('reportForm').addEventListener('submit',async e=>{
    e.preventDefault();
    const form=e.currentTarget;if(!form.reportValidity())return;
@@ -583,6 +677,8 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    setStatus('reportStatus','আপনার তথ্য জমা হচ্ছে…');
    const payload={
      origin:$('rFrom').value,destination:$('rTo').value,vehicle_type:$('rMode').value,
+     vehicle_variant:$('rMode').value==='auto' ? $('rVariant').value : 'rickshaw',
+     fare_basis:$('rBasis').value,
      fare:Number($('rFare').value),travel_date:$('rDate').value,
      note:$('rNote').value,consent:$('rConsent').checked
    };
@@ -597,7 +693,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
        method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)
      });
      setStatus('reportStatus',result.message||'তথ্য জমা হয়েছে।',false,true);
-     form.reset();$('rDate').value=localToday;reportCoordinates={from:null,to:null};
+     form.reset();$('rDate').value=localToday;reportCoordinates={from:null,to:null};syncReportMode();
    }catch(err){setStatus('reportStatus',err.message||'সংযোগ সমস্যা।',true);}
    finally{btn.disabled=false;}
  });
@@ -612,7 +708,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      for(const item of data.reports){
        const article=document.createElement('article');
        const title=document.createElement('strong');
-       title.textContent='#'+item.id+' '+(modeLabel[item.vehicle_type]||'রিকশা')+' · '+item.origin+' → '+item.destination+' · '+money(item.fare);
+       title.textContent='#'+item.id+' '+(item.vehicle_variant==='leguna'?'লেগুনা':(modeLabel[item.vehicle_type]||'রিকশা'))+' · '+item.origin+' → '+item.destination+' · '+money(item.fare)+(item.fare_basis==='per_person'?'/জন':'');
        const info=document.createElement('p');info.textContent=item.travel_date+' · '+(item.note||'অতিরিক্ত তথ্য নেই');
        article.append(title,info);
        for(const [status,label] of [['approved','অনুমোদন'],['rejected','বাতিল']]){
