@@ -5,12 +5,16 @@ import { webcrypto } from 'node:crypto';
 
 const source = await readFile(new URL('../worker.js', import.meta.url), 'utf8');
 const factory = new Function(
-  'html', 'beauty', 'journal', 'about', 'crypto', 'TextEncoder', 'Response', 'URL',
+  'html', 'beauty', 'journal', 'about', 'articleCox', 'articleSreemangal',
+  'articleRatargul', 'articleSavar', 'articleFares', 'crypto', 'TextEncoder', 'Response', 'URL',
   source.replace(/^import\s+\w+\s+from\s+['"][^'"]+['"];?\s*$/gm, '').replace('export default', 'return')
 );
 const worker = factory('<!doctype html><html lang="bn">Vara Koto</html>',
   '<html>সৌন্দর্যের বাংলাদেশ</html>', '<html>ভ্রমণ ব্লগ</html>',
-  '<html>আমাদের সম্পর্কে</html>', webcrypto, TextEncoder, Response, URL);
+  '<html>আমাদের সম্পর্কে</html>', '<html>কক্সবাজার ভ্রমণ</html>',
+  '<html>শ্রীমঙ্গল ভ্রমণ</html>', '<html>রাতারগুল</html>',
+  '<html>সাভারের স্থানীয় রুট</html>', '<html>রিকশা ও অটো</html>',
+  webcrypto, TextEncoder, Response, URL);
 
 function environment(rows = [], guideRows = []) {
   const operations = [];
@@ -209,4 +213,47 @@ test('the local search includes mapped CRP and Radio Colony stops', async () => 
   const {res,json}=await response('/api/places?q=crp');
   assert.equal(res.status,200);
   assert.ok(json.locations.some(p=>p.label.includes('সিআরপি')&&Number.isFinite(p.lat)&&Number.isFinite(p.lon)));
+});
+
+
+test('all five full-article routes resolve correctly and carry the temporary-domain noindex rule', async () => {
+  const routes = [
+    ['/travel-blog/coxsbazar','কক্সবাজার'],
+    ['/travel-blog/sreemangal','শ্রীমঙ্গল'],
+    ['/travel-blog/ratargul','রাতারগুল'],
+    ['/travel-blog/savar-local','সাভারের স্থানীয়'],
+    ['/travel-blog/local-fares','রিকশা ও অটো']
+  ];
+  for (const [path, label] of routes) {
+    const { res } = await response(path);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('x-robots-tag'), 'noindex, nofollow');
+    assert.match(await res.text(), new RegExp(label));
+  }
+});
+test('homepage shows selected route and fare results before the map and has no route animation', async () => {
+  const page = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const resultPosition = page.indexOf('id="journeyLabel"');
+  const mapPosition = page.indexOf('id="map"');
+  assert.ok(resultPosition >= 0 && mapPosition > resultPosition);
+  assert.match(page, /dashArray:'7,10'/);
+  assert.match(page, /bindTooltip\(isEnd\?'ড্রপ':'পিকআপ'/);
+  assert.doesNotMatch(page, /animation:route-flow/);
+  assert.doesNotMatch(page, /map\.flyToBounds/);
+});
+test('travel landing and Bangladesh beauty pages link to completed destination subpages', async () => {
+  const journal = await readFile(new URL('../travel-blog.html', import.meta.url), 'utf8');
+  const beauty = await readFile(new URL('../beauty.html', import.meta.url), 'utf8');
+  for (const slug of ['coxsbazar','sreemangal','ratargul']) {
+    assert.ok(journal.includes('/travel-blog/' + slug));
+    assert.ok(beauty.includes('/travel-blog/' + slug));
+    const article = await readFile(new URL('../articles/' + slug + '.html', import.meta.url), 'utf8');
+    assert.ok(article.includes('<article class="article">'));
+    assert.ok((article.match(/<h2>/g)||[]).length >= 5);
+  }
+  for (const slug of ['savar-local','local-fares']) {
+    assert.ok(journal.includes('/travel-blog/' + slug));
+    const article = await readFile(new URL('../articles/' + slug + '.html', import.meta.url), 'utf8');
+    assert.ok(article.includes('<article class="article">'));
+  }
 });
