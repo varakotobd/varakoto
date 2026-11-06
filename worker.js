@@ -148,6 +148,28 @@ async function reverse(url) {
   if (!label) return json({ error: 'বর্তমান অবস্থানের নাম পাওয়া যায়নি।' }, 404);
   return json({ location: { label, lat, lon } }, 200, 'public, max-age=300');
 }
+function decodePolyline6(value) {
+  if (typeof value !== 'string') return [];
+  const points = [];
+  let lat = 0, lon = 0, position = 0;
+  const readNumber = () => {
+    let shift = 0, result = 0, byte;
+    do {
+      if (position >= value.length || shift > 35) throw Error('Invalid polyline');
+      byte = value.charCodeAt(position++) - 63;
+      if (byte < 0) throw Error('Invalid polyline');
+      result |= (byte & 31) << shift;
+      shift += 5;
+    } while (byte >= 32);
+    return (result & 1) ? ~(result >> 1) : (result >> 1);
+  };
+  while (position < value.length && points.length < 12000) {
+    lat += readNumber();
+    lon += readNumber();
+    points.push([lon / 1e6, lat / 1e6]);
+  }
+  return points;
+}
 async function route(url) {
   const query = Object.fromEntries(url.searchParams);
   const origin = locationPair(query, 'origin');
@@ -157,30 +179,50 @@ async function route(url) {
     return json({ error: 'আলাদা দুটি অবস্থান বাছুন।' }, 400);
   }
   const coords = origin.lon + ',' + origin.lat + ';' + destination.lon + ',' + destination.lat;
-  const path = coords + '?overview=full&geometries=geojson&steps=false&alternatives=false';
+  const osrmQuery = coords + '?overview=full&geometries=geojson&steps=false&alternatives=false';
+  const valhallaQuery = encodeURIComponent(JSON.stringify({
+    locations: [{ lat: origin.lat, lon: origin.lon }, { lat: destination.lat, lon: destination.lon }],
+    costing: 'auto', units: 'kilometers', language: 'en'
+  }));
   const providers = [
-    'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + path,
-    'https://router.project-osrm.org/route/v1/driving/' + path
+    { type: 'valhalla', url: 'https://valhalla1.openstreetmap.de/route?json=' + valhallaQuery },
+    { type: 'osrm', url: 'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + osrmQuery },
+    { type: 'osrm', url: 'https://router.project-osrm.org/route/v1/driving/' + osrmQuery }
   ];
-  for (const endpoint of providers) {
+  for (const provider of providers) {
     try {
-      const response = await fetch(endpoint, {
-        headers: { accept: 'application/json' },
+      const response = await fetch(provider.url, {
+        headers: {
+          accept: 'application/json',
+          'x-client-id': 'varakoto.vkbd.workers.dev'
+        },
         cf: { cacheTtl: 3600, cacheEverything: true },
-        signal: AbortSignal.timeout(8000)
+        signal: AbortSignal.timeout(5500)
       });
       if (!response.ok) continue;
       const body = await response.json();
-      const result = body.routes?.[0];
-      if (!result || !Number.isFinite(result.distance) || result.distance <= 0 ||
-          result.distance > 2000000 || !Array.isArray(result.geometry?.coordinates) ||
-          result.geometry.coordinates.length < 2) continue;
+      let distance = null, geometry = [];
+      if (provider.type === 'valhalla') {
+        const length = Number(body.trip?.summary?.length);
+        if (Number.isFinite(length) && length > 0 && length < 2000) {
+          distance = length;
+          try { geometry = decodePolyline6(body.trip?.legs?.[0]?.shape); } catch {}
+        }
+      } else {
+        const result = body.routes?.[0];
+        if (result && Number.isFinite(result.distance) &&
+            result.distance > 0 && result.distance < 2000000) {
+          distance = result.distance / 1000;
+          geometry = Array.isArray(result.geometry?.coordinates) ? result.geometry.coordinates : [];
+        }
+      }
+      if (!Number.isFinite(distance) || distance <= 0) continue;
       return json({
-        distance_km: Math.round(result.distance / 100) / 10,
-        geometry: result.geometry.coordinates,
+        distance_km: Math.round(distance * 10) / 10,
+        geometry: geometry.length > 1 ? geometry : [],
         type: 'road',
         description: 'সড়কপথের আনুমানিক দূরত্ব; রিকশা বা অটোর বাস্তব পথ আলাদা হতে পারে।',
-        attribution: '© OpenStreetMap contributors / OSRM'
+        attribution: '© OpenStreetMap contributors / ' + (provider.type === 'valhalla' ? 'Valhalla' : 'OSRM')
       }, 200, 'public, max-age=300');
     } catch (error) {
       console.warn('External routing provider unavailable', error?.message || error);
