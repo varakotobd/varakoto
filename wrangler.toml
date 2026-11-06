@@ -6,7 +6,7 @@ workers_dev = true
 [[d1_databases]]
 binding = "DB"
 database_name = "varakoto-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "e2d1e9c8-23b3-456a-85d9-b26fd90f8303"
 
 [[rules]]
 type = "Text"
