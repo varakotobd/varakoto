@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#ffd43b">
-<meta name="description" content="ভাড়া কত?—বাংলাদেশের স্থানীয় পরিবহনের কমিউনিটি-ভিত্তিক ভাড়ার তথ্য। রিকশা, ব্যাটারি অটো, সিএনজি ও ইজিবাইকের দূরত্ব ও অনুমোদিত ভাড়া খুঁজুন।">
+<meta name="theme-color" content="#172b29">
+<meta name="description" content="ভাড়া কত?—বাংলাদেশের স্থানীয় পরিবহনের কমিউনিটি-ভিত্তিক ভাড়ার তথ্য। রিকশা এবং ব্যাটারি অটো/লেগুনার বাস্তব রুট, সড়ক দূরত্ব ও স্থানীয়ভাবে শেয়ার করা ভাড়ার তথ্য খুঁজুন।">
 <title>ভাড়া কত? | Vara Koto — স্থানীয় যাতায়াতের ভাড়া জানুন</title>
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoT4d8R+RxZc=" crossorigin>
@@ -20,16 +20,16 @@ body{margin:0;background:var(--base);color:var(--ink);font-family:system-ui,"Hin
 a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.6;cursor:wait}
 :focus-visible{outline:3px solid #d99e0e;outline-offset:3px}
 .wrap{width:min(1160px,calc(100% - 36px));margin-inline:auto}
-.site-header{background:var(--yellow);border-bottom:1px solid #eac02d;position:relative;z-index:50}
+.site-header{background:#172b29;border-bottom:1px solid #253e39;position:relative;z-index:50;box-shadow:0 3px 11px #13211e11}
 .header-inner{min-height:77px;display:flex;align-items:center;justify-content:space-between;gap:22px}
 .brand{display:flex;align-items:center;text-decoration:none;gap:9px}
 .brand-icon{display:grid;place-items:center;width:56px;height:64px;flex:none}
 .brand-icon img{width:100%;height:100%;object-fit:contain}
-.brand-title{display:block;font-size:23px;font-weight:900;letter-spacing:-.65px;line-height:1.15}
-.brand-sub{display:block;font-size:10px;letter-spacing:2px;font-weight:850;color:#5f5130}
-.nav{display:flex;align-items:center;gap:25px}.nav a{text-decoration:none;font-size:13px;font-weight:800}
+.brand-title{display:block;color:#fff;font-size:23px;font-weight:900;letter-spacing:-.65px;line-height:1.15}
+.brand-sub{display:block;font-size:10px;letter-spacing:2px;font-weight:850;color:#fcd64a}
+.nav{display:flex;align-items:center;gap:25px}.nav a{text-decoration:none;font-size:13px;font-weight:800;color:#e7f2ec}
 .nav a:hover{text-decoration:underline;text-underline-offset:5px}
-.nav .nav-button{background:#171c1c;color:#fff;border-radius:12px;padding:12px 17px;text-decoration:none}
+.nav .nav-button{background:#ffd43b;color:#17211e;border-radius:12px;padding:12px 17px;text-decoration:none}
 .hero{background:linear-gradient(135deg,#ffe66e 0%,#ffd43b 55%,#ffda53 100%);overflow:hidden}
 .hero-inner{display:grid;grid-template-columns:.94fr 1.06fr;gap:54px;align-items:center;padding-block:58px 66px;min-height:545px}
 .hero-eyebrow{display:inline-block;border-radius:100px;border:1px solid #d0a817;padding:7px 13px;background:#fff8d2;font-size:12px;font-weight:850;color:#55450e;margin-bottom:18px}
@@ -150,6 +150,19 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 }
 @media(max-width:340px){.vehicle-grid{grid-template-columns:1fr}.hero h1{font-size:35px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Local-trip UX: distinct dark header, two fare choices and accurate map pin controls */
+.sample-routes{border-top:1px solid #eef0e9;margin-top:16px;padding-top:13px}
+.sample-title{display:block;color:#7a7968;font-size:12px;font-weight:800;margin-bottom:9px}
+.sample-list{display:flex;gap:8px;flex-wrap:wrap}
+.sample-list button{background:#fff8da;color:#52451e;border:1px solid #ecd995;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:750}
+.sample-list button:hover{background:#ffeba0}
+.vehicle-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.map-controls{display:flex;gap:8px;align-items:center;padding:13px 14px 4px;flex-wrap:wrap}
+.map-controls button{background:#f6f8f4;color:#365749;border:1px solid #dae4d9;border-radius:10px;padding:8px 11px;font-size:12px;font-weight:800}
+.map-controls button[aria-pressed=true]{background:#ffdf5a;color:#222;border-color:#d4a410}
+#map{cursor:crosshair}
+@media(max-width:640px){.map-controls button{flex:1}.vehicle-card{min-height:98px}}
 </style>
 </head>
 <body>
@@ -170,8 +183,8 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
   <div>
    <span class="hero-eyebrow">🛺 বাংলাদেশের স্থানীয় যাতায়াত</span>
    <h1>আপনি <span>কোথায়</span><br>যাবেন?</h1>
-   <p>যাত্রার শুরু আর গন্তব্য লিখুন। মানচিত্রে দূরত্ব দেখুন, আর রিকশা বা অটোর অনুমোদিত ভাড়ার তথ্য জানুন—সহজে, এক জায়গায়।</p>
-   <ul class="hero-tags"><li>🚲 রিকশা</li><li>🛺 ব্যাটারি অটো</li><li>🚕 সিএনজি</li><li>🚐 ইজিবাইক</li></ul>
+   <p>যাত্রার শুরু আর গন্তব্য লিখুন। বাস্তব মানচিত্রে রুট ও দূরত্ব দেখুন, রিকশা ও অটো/লেগুনার স্থানীয় ভাড়ার তথ্য জানুন—এক স্ক্রিনেই।</p>
+   <ul class="hero-tags"><li>🛺 রিকশা</li><li>🚐 ব্যাটারি অটো / লেগুনা</li></ul>
   </div>
   <div class="hero-art" aria-hidden="true">
    <img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-bangla-rickshaw-logo.png" alt="" width="496" height="720">
@@ -201,13 +214,14 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
     <button type="button" class="location-button" id="useLocation">◎ আমার বর্তমান অবস্থান</button>
     <small id="searchHint">স্থান লিখলে সম্ভাব্য জায়গা দেখাবে। স্থান বেছে নিলে দূরত্বও পাওয়া যাবে।</small>
    </div>
+   <div class="sample-routes"><span class="sample-title">জনপ্রিয় স্থানীয় রুট</span><div id="sampleRoutes" class="sample-list" aria-label="লোকাল রুটের উদাহরণ"></div></div>
   </form>
  </div>
 </section>
 <section id="results" class="section wrap" aria-labelledby="resultTitle">
  <p class="kicker">YOUR JOURNEY</p>
  <h2 class="section-head" id="resultTitle">দূরত্ব ও ভাড়ার তথ্য</h2>
- <p class="section-desc">যানবাহনভেদে ভাড়া আলাদা হতে পারে। নিচের দামগুলো থাকলে তা শুধু যাচাই করা যাত্রী রিপোর্ট থেকে দেখানো হয়।</p>
+ <p class="section-desc">আপনার দেওয়া স্থানীয় ভাড়ার তথ্য এবং যাচাই করা যাত্রী রিপোর্ট আলাদাভাবে দেখানো হয়। অটো/লেগুনার ভাড়া প্রতি ব্যক্তি হলে সেটি স্পষ্ট থাকবে।</p>
  <div class="trip-result" style="margin-top:23px">
   <div class="trip-main">
    <div class="result-heading">
@@ -215,32 +229,34 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
     <div class="distance-tag"><span id="distance">— কিমি</span><small id="distanceType">দূরত্ব</small></div>
    </div>
    <div class="vehicle-grid" id="vehicleGrid" role="group" aria-label="স্থানীয় পরিবহন">
-    <button type="button" class="vehicle-card active" data-mode="rickshaw" aria-pressed="true"><span class="vehicle-emoji">🚲</span><span><span class="name">রিকশা</span><span class="price" id="price-rickshaw">৳—</span><span class="meta" id="meta-rickshaw">তথ্য খুঁজুন</span></span></button>
-    <button type="button" class="vehicle-card" data-mode="auto" aria-pressed="false"><span class="vehicle-emoji">🛺</span><span><span class="name">ব্যাটারি অটো</span><span class="price" id="price-auto">৳—</span><span class="meta" id="meta-auto">তথ্য খুঁজুন</span></span></button>
-    <button type="button" class="vehicle-card" data-mode="cng" aria-pressed="false"><span class="vehicle-emoji">🚕</span><span><span class="name">সিএনজি</span><span class="price" id="price-cng">৳—</span><span class="meta" id="meta-cng">তথ্য খুঁজুন</span></span></button>
-    <button type="button" class="vehicle-card" data-mode="easybike" aria-pressed="false"><span class="vehicle-emoji">🚐</span><span><span class="name">ইজিবাইক</span><span class="price" id="price-easybike">৳—</span><span class="meta" id="meta-easybike">তথ্য খুঁজুন</span></span></button>
+    <button type="button" class="vehicle-card active" data-mode="rickshaw" aria-pressed="true"><span class="vehicle-emoji">🛺</span><span><span class="name">রিকশা</span><span class="price" id="price-rickshaw">৳—</span><span class="meta" id="meta-rickshaw">রুট খুঁজুন</span></span></button>
+    <button type="button" class="vehicle-card" data-mode="auto" aria-pressed="false"><span class="vehicle-emoji">🚐</span><span><span class="name">অটো / লেগুনা</span><span class="price" id="price-auto">৳—</span><span class="meta" id="meta-auto">প্রতি যাত্রীর ভাড়া</span></span></button>
    </div>
-   <div id="fareStatus" class="fare-note" role="status" aria-live="polite">ভাড়ার তথ্য দেখার জন্য প্রথমে দুটি স্থান লিখুন। অনুমোদিত রিপোর্ট না থাকলে কোনো অনুমান করে দাম দেখানো হবে না।</div>
+   <div id="fareStatus" class="fare-note" role="status" aria-live="polite">রুট লিখে ভাড়া দেখুন। স্থানীয়ভাবে শেয়ার করা তথ্যকে যাচাই করা রিপোর্ট থেকে আলাদা দেখানো হবে।</div>
    <div class="result-actions">
-    <span class="verified">✓ কমিউনিটির যাচাই করা তথ্য</span>
+    <span class="verified">✓ তথ্যের উৎস পরিষ্কারভাবে দেখানো হয়</span>
     <button id="reportThis" class="mini-cta" type="button">এই রুটের ভাড়া জানান →</button>
    </div>
   </div>
   <aside class="map-panel">
    <div id="map" aria-label="নির্বাচিত যাত্রার মানচিত্র" role="region"></div>
-   <div class="map-footer"><span id="mapInfo">📍 বাংলাদেশ দেখানো হচ্ছে</span><button id="mapReset" type="button">মানচিত্র রিসেট</button></div>
-   <div class="map-note">মানচিত্র © OpenStreetMap contributors। সড়ক রুট © OSRM (পরীক্ষামূলক)।</div>
+   <div class="map-controls" role="group" aria-label="মানচিত্র থেকে সঠিক পিকআপ এবং গন্তব্য নির্বাচন">
+    <button id="pickFrom" type="button" aria-pressed="false">📍 মানচিত্রে পিকআপ দিন</button>
+    <button id="pickTo" type="button" aria-pressed="false">🏁 ড্রপ দিন</button>
+   </div>
+   <div class="map-footer"><span id="mapInfo">📍 সাভারের বাস্তব মানচিত্র</span><button id="mapReset" type="button">রিসেট</button></div>
+   <div class="map-note">OpenStreetMap-এর বাস্তব রাস্তা; রুট ও দূরত্ব OSRM/Valhalla দ্বারা আনুমানিক। লোকাল অটো/রিকশার পথ ভিন্ন হতে পারে।</div>
   </aside>
  </div>
 </section>
 <section id="how" class="section how">
  <div class="wrap">
   <p class="kicker">HOW VARAKOTO WORKS</p><h2 class="section-head">সহজে ভাড়া জানুন, সবাইকে সাহায্য করুন</h2>
-  <p class="section-desc">লোকেশন বাছুন, যানবাহনভেদে অনুমোদিত ভাড়া দেখুন, আর নিজের যাত্রার তথ্য দিয়ে অন্যদের সাহায্য করুন।</p>
+  <p class="section-desc">লোকেশন বাছুন, বাস্তব সড়ক রুট দেখুন এবং শেয়ার করা স্থানীয় ভাড়া বা অনুমোদিত রিপোর্ট থেকে ধারণা নিন।</p>
   <div class="feature-grid">
    <div class="feature"><div class="feature-icon">📍</div><h3>১. যাত্রার স্থান বাছুন</h3><p>সার্চে স্থান লিখে সম্ভাব্য ঠিকানা থেকে পিকআপ ও গন্তব্য নির্বাচন করুন।</p></div>
    <div class="feature"><div class="feature-icon">🛺</div><h3>২. দূরত্ব ও ভাড়া দেখুন</h3><p>মানচিত্রে আনুমানিক রাস্তার দূরত্ব এবং পাওয়া গেলে অনুমোদিত ভাড়ার রিপোর্ট দেখুন।</p></div>
-   <div class="feature"><div class="feature-icon">🤝</div><h3>৩. নিজের ভাড়া জানান</h3><p>আপনার দেওয়া সঠিক ভাড়া যাচাইয়ের পর অন্য যাত্রীদের কাজে লাগবে।</p></div>
+   <div class="feature"><div class="feature-icon">🤝</div><h3>৩. নিজের ভাড়া জানান</h3><p>আপনার দেওয়া ভাড়া ও প্রতি ব্যক্তি/পুরো গাড়ি কোন হিসাবে দিয়েছেন, তা যাচাইয়ের পর কাজে লাগবে।</p></div>
   </div>
  </div>
 </section>
@@ -248,7 +264,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  <div class="report-layout">
   <div>
    <p class="kicker">COMMUNITY FARES</p><h2 class="section-head">আজ কত ভাড়া দিলেন?</h2>
-   <p class="section-desc">একই রুটে ভাড়ার অভিজ্ঞতা জমা হলে তথ্য আরও কার্যকর হয়। রিকশা, অটো, সিএনজি বা ইজিবাইকের ভাড়া জানাতে পারেন।</p>
+   <p class="section-desc">একই রুটে ভাড়ার অভিজ্ঞতা জমা হলে তথ্য আরও কার্যকর হয়। রিকশা এবং ব্যাটারি অটো/লেগুনার ভাড়া জানাতে পারেন।</p>
    <div class="highlight"><strong>স্বচ্ছ তথ্য, সবার জন্য</strong>আপনার ব্যক্তিগত নাম, মোবাইল নম্বর বা ইমেইল লাগবে না। শুধু বাস্তব ভাড়া জমা দিন। জমা দেওয়া তথ্য প্রশাসনিক যাচাইয়ের আগে প্রকাশিত হবে না।</div>
   </div>
   <div class="report-form">
@@ -258,7 +274,9 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
     <div class="form-grid">
      <div><label for="rFrom">যাত্রার শুরু</label><div class="input-wrap"><input id="rFrom" minlength="2" maxlength="90" placeholder="যেমন: সাভার বাসস্ট্যান্ড" required></div></div>
      <div><label for="rTo">গন্তব্য</label><div class="input-wrap"><input id="rTo" minlength="2" maxlength="90" placeholder="যেমন: নবীনগর" required></div></div>
-     <div><label for="rMode">যানবাহন</label><select id="rMode" required><option value="rickshaw">রিকশা</option><option value="auto">ব্যাটারি অটো</option><option value="cng">সিএনজি</option><option value="easybike">ইজিবাইক</option></select></div>
+     <div><label for="rMode">যানবাহন</label><select id="rMode" required><option value="rickshaw">রিকশা</option><option value="auto">অটো / লেগুনা</option></select></div>
+     <div id="rVariantGroup" hidden><label for="rVariant">অটোর ধরন</label><select id="rVariant"><option value="battery_auto">ব্যাটারি অটো</option><option value="leguna">লেগুনা</option></select></div>
+     <div><label for="rBasis">ভাড়া কার জন্য?</label><select id="rBasis"><option value="per_ride">পুরো গাড়ির ভাড়া</option><option value="per_person">প্রতি ব্যক্তির ভাড়া</option></select></div>
      <div><label for="rFare">যে ভাড়া দিয়েছেন (৳)</label><input id="rFare" type="number" required min="1" max="5000" step="1" placeholder="টাকার পরিমাণ"></div>
      <div><label for="rDate">যাত্রার তারিখ</label><input id="rDate" type="date" required></div>
      <div><label for="rNote">অতিরিক্ত তথ্য (ঐচ্ছিক)</label><input id="rNote" type="text" maxlength="300" placeholder="যেমন: বৃষ্টি ছিল"></div>
