@@ -303,6 +303,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  let map = null, mapLine = null, markers = [], latestTrip = null;
  let selected = {from:null,to:null}, reportCoordinates = {from:null,to:null};
  let lastResults = {};
+ let searchId = 0;
  const today = new Date();
  const localToday = new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
  $('rDate').max = localToday; $('rDate').value = localToday;
@@ -464,27 +465,34 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    if(origin.toLocaleLowerCase('bn')===destination.toLocaleLowerCase('bn')){
      setStatus('fareStatus','পিকআপ ও ড্রপ আলাদা হতে হবে।',true);return;
    }
+   const requestId=++searchId;
+   lastResults={};
    const btn=$('findButton');btn.disabled=true;btn.textContent='খোঁজা হচ্ছে…';
    setText('journeyLabel',origin+' → '+destination);
-   setText('journeyNote','ভাড়ার অনুমোদিত রিপোর্ট এবং মানচিত্রের তথ্য খোঁজা হচ্ছে…');
+   setText('journeyNote','ভাড়ার রিপোর্ট এবং মানচিত্রের তথ্য খোঁজা হচ্ছে…');
    setText('distance','…');setText('distanceType','দূরত্ব হিসাব');
    setStatus('fareStatus','রুট অনুযায়ী ভাড়া খোঁজা হচ্ছে…');
    for(const m of modes){setText('price-'+m,'৳—');setText('meta-'+m,'খোঁজা হচ্ছে…');}
    try{
-     const from=await resolveLocation('from');
-     const to=await resolveLocation('to');
+     const [from,to]=await Promise.all([resolveLocation('from'),resolveLocation('to')]);
+     if(requestId!==searchId)return;
      latestTrip={origin,destination,from,to};
      const params=new URLSearchParams({origin,destination});
      if(isCoord(from)&&isCoord(to)){
        params.set('origin_lat',String(from.lat));params.set('origin_lon',String(from.lon));
        params.set('destination_lat',String(to.lat));params.set('destination_lon',String(to.lon));
+       drawMap(from,to,null);
+       setText('distance',lang.format(haversine(from,to))+' কিমি');
+       setText('distanceType','সরাসরি দূরত্ব');
+       setText('journeyNote','সড়কপথের দূরত্ব হিসাব হচ্ছে…');
      }
      const faresPromise=api('/api/estimates?'+params.toString());
      const routePromise=(isCoord(from)&&isCoord(to))
        ?api('/api/route?origin_lat='+from.lat+'&origin_lon='+from.lon+'&destination_lat='+to.lat+'&destination_lon='+to.lon)
           .catch(()=>null)
        :Promise.resolve(null);
-     const [fares,route]=await Promise.all([faresPromise,routePromise]);
+     const fares=await faresPromise;
+     if(requestId!==searchId)return;
      lastResults=Object.fromEntries((fares.vehicles||[]).map(v=>[v.id,v]));
      for(const vehicle of fares.vehicles||[]){
        setText('price-'+vehicle.id,vehicle.count?money(vehicle.median):'৳—');
@@ -492,12 +500,15 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      }
      displaySelectedVehicle();
      if(isCoord(from)&&isCoord(to)){
-       drawMap(from,to,route?.geometry);
-       const dist=Number.isFinite(route?.distance_km)?route.distance_km:haversine(from,to);
-       setText('distance',lang.format(dist)+' কিমি');
-       setText('distanceType',route?'আনুমানিক সড়ক দূরত্ব':'সরলরেখার দূরত্ব');
-       setText('mapInfo',route?'🛣️ সড়কপথের আনুমানিক রুট':'📏 সরলরেখার দূরত্ব');
-       setText('journeyNote',(route?.description||'সড়কপথের রুট পাওয়া যায়নি; সরলরেখার দূরত্ব দেখানো হচ্ছে।')+' ভাড়া নির্ভর করে অনুমোদিত রিপোর্টের ওপর।');
+       routePromise.then(route=>{
+         if(requestId!==searchId)return;
+         drawMap(from,to,route?.geometry);
+         const distance=Number.isFinite(route?.distance_km)?route.distance_km:haversine(from,to);
+         setText('distance',lang.format(distance)+' কিমি');
+         setText('distanceType',route?'আনুমানিক সড়ক দূরত্ব':'সরলরেখার দূরত্ব');
+         setText('mapInfo',route?'🛣️ সড়কপথের আনুমানিক রুট':'📏 সরলরেখার দূরত্ব');
+         setText('journeyNote',(route?.description||'সড়কপথের রুট পাওয়া যায়নি; সরলরেখার দূরত্ব দেখানো হচ্ছে।')+' ভাড়া নির্ভর করে অনুমোদিত রিপোর্টের ওপর।');
+       });
      }else{
        setText('distance','— কিমি');setText('distanceType','লোকেশন বাছুন');
        setText('mapInfo','📍 সাজেশন থেকে দুটি লোকেশন বাছুন');
@@ -505,10 +516,13 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
      }
      $('results').scrollIntoView({behavior:'smooth',block:'start'});
    }catch(err){
+     if(requestId!==searchId)return;
      setStatus('fareStatus',err.message||'সংযোগ সমস্যা।',true);
      setText('journeyNote','একটু পরে আবার চেষ্টা করুন।');
      for(const m of modes)setText('meta-'+m,'পাওয়া যায়নি');
-   }finally{btn.disabled=false;btn.textContent='ভাড়া দেখুন →';}
+   }finally{
+     if(requestId===searchId){btn.disabled=false;btn.textContent='ভাড়া দেখুন →';}
+   }
  });
  function displaySelectedVehicle(){
    for(const el of document.querySelectorAll('.vehicle-card')){
