@@ -5,10 +5,12 @@ import { webcrypto } from 'node:crypto';
 
 const source = await readFile(new URL('../worker.js', import.meta.url), 'utf8');
 const factory = new Function(
-  'html', 'crypto', 'TextEncoder', 'Response', 'URL',
-  source.replace("import html from './index.html';", '').replace('export default', 'return')
+  'html', 'beauty', 'journal', 'about', 'crypto', 'TextEncoder', 'Response', 'URL',
+  source.replace(/^import\s+\w+\s+from\s+['"][^'"]+['"];?\s*$/gm, '').replace('export default', 'return')
 );
-const worker = factory('<!doctype html><html lang="bn">Vara Koto</html>', webcrypto, TextEncoder, Response, URL);
+const worker = factory('<!doctype html><html lang="bn">Vara Koto</html>',
+  '<html>সৌন্দর্যের বাংলাদেশ</html>', '<html>ভ্রমণ ব্লগ</html>',
+  '<html>আমাদের সম্পর্কে</html>', webcrypto, TextEncoder, Response, URL);
 
 function environment(rows = [], guideRows = []) {
   const operations = [];
@@ -192,4 +194,19 @@ test('a legacy CNG submission is rejected from the two-option public API',async(
   body:JSON.stringify({origin:'সাভার',destination:'নবীনগর',vehicle_type:'cng',fare:150,travel_date:'2026-11-01',consent:true})
  });
  assert.equal(res.status,400);
+});
+
+
+test('new editorial pages serve and retain noindex on temporary domain', async () => {
+  for(const [path,label] of [['/beauty','সৌন্দর্যের বাংলাদেশ'],['/travel-blog','ভ্রমণ ব্লগ'],['/about','আমাদের সম্পর্কে']]){
+    const {res}=await response(path);
+    assert.equal(res.status,200);
+    assert.equal(res.headers.get('x-robots-tag'),'noindex, nofollow');
+    assert.match(await res.text(), new RegExp(label));
+  }
+});
+test('the local search includes mapped CRP and Radio Colony stops', async () => {
+  const {res,json}=await response('/api/places?q=crp');
+  assert.equal(res.status,200);
+  assert.ok(json.locations.some(p=>p.label.includes('সিআরপি')&&Number.isFinite(p.lat)&&Number.isFinite(p.lon)));
 });
