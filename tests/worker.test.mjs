@@ -40,7 +40,7 @@ function environment(rows = [], guideRows = []) {
     }
   };
 }
-function url(path) { return 'https://varakoto.vkbd.workers.dev' + path; }
+function url(path) { return 'https://varakoto.rickshaw.workers.dev' + path; }
 async function response(path, env = environment(), options = {}) {
   const res = await worker.fetch(new Request(url(path), options), env);
   return { res, json: res.headers.get('content-type')?.includes('application/json') ? await res.json() : null };
