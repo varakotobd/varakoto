@@ -128,7 +128,7 @@ export default {
         const dateIsValid = /^\d{4}-\d{2}-\d{2}$/.test(travelDate) && Number.isFinite(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === travelDate;
         if (!validPlace(origin) || !validPlace(destination) || origin === destination ||
             !Number.isInteger(fare) || fare < 1 || fare > 5000 || note.length > 300 ||
-            !dateIsValid || travelDate > new Date().toISOString().slice(0, 10) ||
+            !dateIsValid || travelDate > new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString().slice(0, 10) ||
             travelDate < '2020-01-01' || data.consent !== true) {
           return json({ error: 'স্থান, ভাড়া, তারিখ ও সম্মতির তথ্য যাচাই করুন।' }, 400);
         }
