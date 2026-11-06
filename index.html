@@ -163,6 +163,44 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 .map-controls button[aria-pressed=true]{background:#ffdf5a;color:#222;border-color:#d4a410}
 #map{cursor:crosshair}
 @media(max-width:640px){.map-controls button{flex:1}.vehicle-card{min-height:98px}}
+
+/* Clean two-mode local transport interface and map-first visual hierarchy */
+.site-header{background:#123c34;border-color:#245447}
+.brand-sub{color:#f9d45c}
+.nav a{color:#f8faf4}
+.nav .nav-button{background:#ffdf61;color:#203b31}
+.nav .nav-button:hover{background:#ffef9c}
+.trip-result{grid-template-columns:1fr}
+.map-panel{grid-row:1;position:relative;border-radius:21px}
+.trip-main{grid-row:2;min-height:auto}
+#map{height:440px}
+.map-heading{padding:13px 18px;background:#153f33;color:#fff;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.map-heading strong{font-size:13px}
+.map-heading small{font-size:11px;color:#cde9d7;margin-left:auto}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#ffe05d;box-shadow:0 0 0 5px #ffe05d22}
+.vehicle-emoji{display:grid;place-items:center;width:94px;height:64px;flex:none}
+.vehicle-emoji svg{display:block;width:100%;height:100%;max-height:68px}
+.vehicle-card{align-items:center;justify-content:flex-start;padding:14px 20px;gap:21px}
+.vehicle-card .name{font-size:17px}.vehicle-card .price{font-size:23px}.vehicle-card .meta{font-size:11px}
+.leaflet-overlay-pane path.route-flow{animation:route-flow .85s linear infinite;stroke-dasharray:10 16}
+@keyframes route-flow{to{stroke-dashoffset:-26}}
+.route-marker{width:22px;height:22px;display:grid;place-items:center;position:relative;border:3px solid #fff;border-radius:50%;background:#16875b;box-shadow:0 0 0 4px #185b3a33,0 2px 11px #0005}
+.route-marker.end{background:#ed9034;border-radius:5px}
+.route-marker:before{content:"";width:6px;height:6px;border-radius:50%;background:white}
+.hero-art img{animation:hero-drift 5.5s ease-in-out infinite}
+.hero-art .floating-note{animation:float-note 3.8s ease-in-out infinite}
+@keyframes hero-drift{50%{transform:translateY(-8px)}}@keyframes float-note{50%{transform:translateY(-10px)}}
+.explore-band{margin:25px 0 0;background:#142f27;color:#fff}
+.explore-inner{display:grid;grid-template-columns:1fr .85fr;gap:40px;align-items:center;padding:50px 0}
+.explore-inner img{width:100%;height:280px;object-fit:cover;border-radius:20px;box-shadow:0 14px 42px #0003;transition:transform .4s}
+.explore-inner img:hover{transform:scale(1.025)}
+.explore-label{font-size:12px;color:#ffdf61;font-weight:900;letter-spacing:2px}
+.explore-inner h2{font-size:clamp(27px,3.5vw,44px);line-height:1.3;margin:10px 0}
+.explore-inner p{font-size:14px;color:#cbded0;max-width:520px}
+.explore-button{display:inline-flex;background:#ffd43b;color:#1c2e23;text-decoration:none;padding:12px 19px;border-radius:12px;font-weight:850;font-size:14px}
+@media(max-width:780px){#map{height:390px}.explore-inner{grid-template-columns:1fr}.explore-inner img{height:230px}}
+@media(max-width:640px){#map{height:360px}.map-heading small{margin-left:0;width:100%}.vehicle-emoji{width:70px;height:52px}.vehicle-card{gap:9px;padding:13px 10px}.vehicle-card .name{font-size:13px}.vehicle-card .price{font-size:18px}.nav a:not(.nav-button){display:none}.nav .nav-button{font-size:11px;padding:10px 9px}.explore-inner{padding:32px 0;gap:20px}}
+@media(prefers-reduced-motion:reduce){.hero-art img,.hero-art .floating-note,.leaflet-overlay-pane path.route-flow{animation:none!important}}
 </style>
 </head>
 <body>
@@ -173,7 +211,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    <span><span class="brand-title">ভাড়া কত?</span><span class="brand-sub">VARAKOTO · BANGLADESH</span></span>
   </a>
   <nav class="nav" aria-label="প্রধান নেভিগেশন">
-   <a href="#find">ভাড়া খুঁজুন</a><a href="#how">কীভাবে কাজ করে</a><a href="#share">ভাড়া জানান</a><a class="nav-button" href="#find">যাত্রা শুরু করুন →</a>
+   <a href="/">হোম</a><a href="/travel-blog">ভ্রমণ ব্লগ</a><a href="/about">আমাদের সম্পর্কে</a><a class="nav-button" href="/beauty">বাংলাদেশের সৌন্দর্য ↗</a>
   </nav>
  </div>
 </header>
@@ -214,7 +252,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
     <button type="button" class="location-button" id="useLocation">◎ আমার বর্তমান অবস্থান</button>
     <small id="searchHint">স্থান লিখলে সম্ভাব্য জায়গা দেখাবে। স্থান বেছে নিলে দূরত্বও পাওয়া যাবে।</small>
    </div>
-   <div class="sample-routes"><span class="sample-title">জনপ্রিয় স্থানীয় রুট</span><div id="sampleRoutes" class="sample-list" aria-label="লোকাল রুটের উদাহরণ"></div></div>
+   
   </form>
  </div>
 </section>
@@ -229,8 +267,8 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
     <div class="distance-tag"><span id="distance">— কিমি</span><small id="distanceType">দূরত্ব</small></div>
    </div>
    <div class="vehicle-grid" id="vehicleGrid" role="group" aria-label="স্থানীয় পরিবহন">
-    <button type="button" class="vehicle-card active" data-mode="rickshaw" aria-pressed="true"><span class="vehicle-emoji">🛺</span><span><span class="name">রিকশা</span><span class="price" id="price-rickshaw">৳—</span><span class="meta" id="meta-rickshaw">রুট খুঁজুন</span></span></button>
-    <button type="button" class="vehicle-card" data-mode="auto" aria-pressed="false"><span class="vehicle-emoji">🚐</span><span><span class="name">অটো / লেগুনা</span><span class="price" id="price-auto">৳—</span><span class="meta" id="meta-auto">প্রতি যাত্রীর ভাড়া</span></span></button>
+    <button type="button" class="vehicle-card active" data-mode="rickshaw" aria-pressed="true"><span class="vehicle-emoji"><svg viewBox="0 0 130 82" role="img" aria-label="রিকশার ছায়া-চিত্র" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="#171b1b" stroke-linecap="round" stroke-linejoin="round"><circle cx="25" cy="61" r="17" stroke-width="5"/><circle cx="104" cy="61" r="17" stroke-width="5"/><circle cx="25" cy="61" r="3" fill="#171b1b"/><circle cx="104" cy="61" r="3" fill="#171b1b"/><path d="M17 15Q27 8 48 11L45 47L34 53L16 47Z" fill="#171b1b" stroke-width="2"/><path d="M45 50L68 53L82 32L104 61L72 63L60 38L45 50Z" stroke-width="4"/><path d="M61 35H79M80 32L85 23L97 22M74 59L104 61M55 61L72 63" stroke-width="4"/><path d="M62 34Q66 30 76 32" stroke-width="5"/><path d="M33 49L42 56M39 15L39 35" stroke-width="3"/><path d="M22 16V39M29 16V38M36 15V39" stroke="#fff" stroke-width="2"/></g></svg></span><span><span class="name">রিকশা</span><span class="price" id="price-rickshaw">৳—</span><span class="meta" id="meta-rickshaw">রুট খুঁজুন</span></span></button>
+    <button type="button" class="vehicle-card" data-mode="auto" aria-pressed="false"><span class="vehicle-emoji"><svg viewBox="0 0 130 82" role="img" aria-label="ব্যাটারি অটোর ছায়া-চিত্র" xmlns="http://www.w3.org/2000/svg"><g stroke="#171b1b" stroke-linejoin="round" stroke-linecap="round"><path d="M17 25Q20 16 33 16H105Q115 16 116 26L114 30H17Z" fill="#171b1b" stroke-width="2"/><path d="M31 30V54L15 56V60H109V48L103 30" fill="none" stroke-width="4"/><path d="M37 34H64V56H37Z" fill="#171b1b" stroke="none"/><path d="M72 36H105V56H72Z" fill="#171b1b" stroke="none"/><path d="M69 31V56" stroke-width="3"/><path d="M14 43L10 52V56H31" fill="none" stroke-width="4"/><path d="M5 40L18 41L24 49" fill="none" stroke-width="3"/><circle cx="24" cy="61" r="13" fill="white" stroke-width="5"/><circle cx="97" cy="61" r="13" fill="white" stroke-width="5"/><circle cx="24" cy="61" r="4" fill="#171b1b" stroke="none"/><circle cx="97" cy="61" r="4" fill="#171b1b" stroke="none"/></g></svg></span><span><span class="name">অটো / লেগুনা</span><span class="price" id="price-auto">৳—</span><span class="meta" id="meta-auto">প্রতি যাত্রীর ভাড়া</span></span></button>
    </div>
    <div id="fareStatus" class="fare-note" role="status" aria-live="polite">রুট লিখে ভাড়া দেখুন। স্থানীয়ভাবে শেয়ার করা তথ্যকে যাচাই করা রিপোর্ট থেকে আলাদা দেখানো হবে।</div>
    <div class="result-actions">
@@ -239,7 +277,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
    </div>
   </div>
   <aside class="map-panel">
-   <div id="map" aria-label="নির্বাচিত যাত্রার মানচিত্র" role="region"></div>
+   <div class="map-heading"><span class="live-dot"></span><strong>আপনার যাত্রার মানচিত্র</strong><small>বাস্তব রাস্তার রুট • লাইভ গাড়ি ট্র্যাকিং নয়</small></div><div id="map" aria-label="নির্বাচিত যাত্রার মানচিত্র" role="region"></div>
    <div class="map-controls" role="group" aria-label="মানচিত্র থেকে সঠিক পিকআপ এবং গন্তব্য নির্বাচন">
     <button id="pickFrom" type="button" aria-pressed="false">📍 মানচিত্রে পিকআপ দিন</button>
     <button id="pickTo" type="button" aria-pressed="false">🏁 ড্রপ দিন</button>
@@ -249,6 +287,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
   </aside>
  </div>
 </section>
+<section class="explore-band" aria-label="বাংলাদেশের সৌন্দর্য"><div class="wrap explore-inner"><div><span class="explore-label">BEAUTY OF BANGLADESH</span><h2>পথের শেষে সুন্দর বাংলাদেশ</h2><p>শহরের ছোট যাত্রা থেকে দেশের অসাধারণ প্রকৃতি—কক্সবাজার, শ্রীমঙ্গল ও রাতারগুলের গল্প আর ছবি দেখুন।</p><a class="explore-button" href="/beauty">বাংলাদেশকে আবিষ্কার করুন ↗</a></div><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Ratargul_Swamp_Forest%2C_Sylhet%2C_Bangladesh.jpg/1280px-Ratargul_Swamp_Forest%2C_Sylhet%2C_Bangladesh.jpg" alt="বাংলাদেশের রাতারগুল জলাবনের সবুজ সৌন্দর্য" loading="lazy"></div></section>
 <section id="how" class="section how">
  <div class="wrap">
   <p class="kicker">HOW VARAKOTO WORKS</p><h2 class="section-head">সহজে ভাড়া জানুন, সবাইকে সাহায্য করুন</h2>
@@ -303,7 +342,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  <div class="wrap">
   <div class="footer-row">
    <div><span class="footer-brand">🛺 ভাড়া কত?</span><p>সারা বাংলাদেশের স্থানীয় যানবাহনের কমিউনিটি-ভিত্তিক ভাড়ার তথ্য। আনুমানিক ভাড়া; সরকারি নির্ধারিত বা নিশ্চিত ভাড়া নয়।</p></div>
-   <nav><a href="#find">যাত্রা খুঁজুন</a><a href="#results">ভাড়া দেখুন</a><a href="#share">তথ্য জানান</a></nav>
+   <nav><a href="/beauty">বাংলাদেশের সৌন্দর্য</a><a href="/travel-blog">ভ্রমণ ব্লগ</a><a href="/about">আমাদের সম্পর্কে</a></nav>
   </div>
   <div class="footer-base">© <span id="year">2026</span> Vara Koto · বাংলাদেশ · লোকেশন সার্চে Photon এবং OpenStreetMap তথ্য ব্যবহৃত হয়।</div>
  </div>
@@ -495,28 +534,7 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
  }
  $('pickFrom').addEventListener('click',()=>activateMapPick('from'));
  $('pickTo').addEventListener('click',()=>activateMapPick('to'));
- async function loadExampleRoutes(){
-   try{
-     const response=await api('/api/routes');
-     for(const route of response.routes||[]){
-       const button=document.createElement('button');
-       button.type='button';
-       button.textContent=route.origin+' → '+route.destination;
-       button.addEventListener('click',()=>{
-         $('fromInput').value=route.origin;$('toInput').value=route.destination;
-         selected.from=route.origin_location||null;
-         selected.to=route.destination_location||null;
-         fromHandler.hide();toHandler.hide();
-         $('tripForm').requestSubmit();
-       });
-       $('sampleRoutes').append(button);
-     }
-   }catch{
-     setText('searchHint','লোকেশন লিখে ভাড়া দেখতে পারেন। উদাহরণ রুট এখন দেখানো যাচ্ছে না।');
-   }
- }
- loadExampleRoutes();
- $('useLocation').addEventListener('click',()=>{
+  $('useLocation').addEventListener('click',()=>{
    if(!navigator.geolocation){setText('searchHint','আপনার ব্রাউজারে লোকেশন সুবিধা নেই।');return;}
    setText('searchHint','আপনার অনুমতি নিয়ে অবস্থান নেওয়া হচ্ছে…');
    navigator.geolocation.getCurrentPosition(async pos=>{
