@@ -59,18 +59,6 @@ jobs:
             throw new Error('Old route movement is still enabled.');
           }
           console.log('Main results are above the static map.');
-          for(const [name, url] of [
-            ['Coxs Bazar', 'https://upload.wikimedia.org/wikipedia/commons/2/29/Cox%27s_Bazar_beach_%283991311%29.jpg'],
-            ['Sreemangal', 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Tea_Garden_near_Srimangal%2C_Sylhet%2C_Bangladesh.jpg/1280px-Tea_Garden_near_Srimangal%2C_Sylhet%2C_Bangladesh.jpg'],
-            ['Ratargul', 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Ratargul_Swamp_Forest%2C_Sylhet%2C_Bangladesh.jpg/1280px-Ratargul_Swamp_Forest%2C_Sylhet%2C_Bangladesh.jpg']
-          ]){
-            try{
-              const response = await fetch(url, {method:'GET', signal:AbortSignal.timeout(9000),
-                headers:{'user-agent':'VaraKotoTravelBlog/1.0 (public image check)'}});
-              console.log('Gallery photo '+name+': HTTP '+response.status+' '+response.headers.get('content-type'));
-              await response.body?.cancel();
-            } catch(error) { console.log('Gallery photo '+name+' could not be verified: '+error.message); }
-          }
           const crpResponse = await get('/api/places?q=crp');
           const crpData = await crpResponse.json();
           if(!crpResponse.ok || !Array.isArray(crpData.locations) ||
