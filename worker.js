@@ -556,6 +556,26 @@ export default {
           Number(c.notnull) === 1 && Number(c.pk)!==1 && c.dflt_value==null &&
           !fareInsertNames.includes(c.name)).map(c=>c.name);
         const missingLimitColumns = limitInsertNames.filter(name => !limitCols.some(c=>c.name===name));
+        // SQL compilation only; EXPLAIN is read-only and inserts no fare data.
+        const writePreflight={};
+        if(url.searchParams.get('check_submission_sql')==='1'){
+          const checks=[
+            ['rate_limit', 'EXPLAIN INSERT INTO submission_limits(fingerprint,day,count) VALUES(?,?,1) ' +
+              'ON CONFLICT(fingerprint,day) DO UPDATE SET count=count+1 WHERE count < ?', ['diagnostic','2026-11-07',DAILY_SUBMISSION_LIMIT]],
+            ['fare_report', 'EXPLAIN INSERT INTO fare_reports(origin,destination,origin_lat,origin_lon,' +
+              'destination_lat,destination_lon,fare,travel_date,note,vehicle_type,fare_basis,vehicle_variant) ' +
+              'VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+              ['diagnostic','diagnostic2',null,null,null,null,1,'2026-11-07','','rickshaw','per_ride','rickshaw']]
+          ];
+          for(const [name,sql,args] of checks){
+            try {
+              await env.DB.prepare(sql).bind(...args).all();
+              writePreflight[name]='ok';
+            }catch(err){
+              writePreflight[name]='error: '+String(err?.message||err).slice(0,240);
+            }
+          }
+        }
         return json({
           ok: true, service: 'Vara Koto',
           submissions_ready: !!env.RATE_LIMIT_SALT &&
@@ -566,7 +586,8 @@ export default {
             missing_fare_columns:missingFareColumns,
             unexpected_required_fare_columns:unexpectedRequiredColumns,
             missing_limit_columns:missingLimitColumns
-          }
+          },
+          ...(url.searchParams.get('check_submission_sql')==='1'?{write_preflight:writePreflight}:{})
         });
       }
       if (request.method === 'GET' && path === '/api/places') return await places(url);
