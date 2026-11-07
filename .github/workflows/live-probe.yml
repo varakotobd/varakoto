@@ -125,6 +125,34 @@ jobs:
             throw new Error('Owner-supplied Savar New Market → Chapain fares not available: ' + JSON.stringify(guide));
           }
           console.log('Owner-supplied Savar sample fares live: Rickshaw Tk20; auto Tk10/person.');
+
+          const ownerGuides = [
+            {from:'সাভার নিউ মার্কেট',to:'চাপাইন',fares:[['rickshaw',20,'per_ride'],['auto',10,'per_person']]},
+            {from:'সাভার নিউ মার্কেট',to:'দেওগা বাজার',fares:[['rickshaw',40,'per_ride'],['auto',20,'per_person']]},
+            {from:'চাপাইন',to:'সিআরপি',fares:[['rickshaw',20,'per_ride']]},
+            {from:'চাপাইন',to:'রেডিও কলোনি',fares:[['rickshaw',30,'per_ride']]},
+            {from:'শ্যামলী স্কয়ার',to:'শিয়া মসজিদ',fares:[['rickshaw',30,'per_ride'],['auto',10,'per_person']]}
+          ];
+          for(const guide of ownerGuides) {
+            const qs = new URLSearchParams({origin:guide.from,destination:guide.to});
+            const response = await get('/api/estimates?' + qs.toString());
+            const body = await response.json();
+            if(!response.ok || !body.sample_route) {
+              throw Error('No public reference match for '+guide.from+' → '+guide.to+': '+JSON.stringify(body));
+            }
+            for(const [mode,fare,basis] of guide.fares){
+              const info=body.vehicles?.find(x=>x.id===mode)?.reference;
+              if(info?.fare!==fare || info.basis!==basis)
+                throw Error('Wrong reference for '+guide.from+' → '+guide.to+': '+JSON.stringify(info));
+            }
+            console.log('FARE LIVE '+guide.from+' → '+guide.to+': '+guide.fares.map(x=>x.join(':')).join(', '));
+          }
+          const alias = await get('/api/estimates?origin='+encodeURIComponent('Savar New Markt')+'&destination=Chapain');
+          const aliases = await alias.json();
+          if(!alias.ok || aliases.sample_route!=='newmarket_chapain')
+            throw Error('Common English search spellings not mapped to the saved fare reference.');
+          console.log('Alternate New Markt / Chapain spelling works.');
+
           for (const [name, path] of [
             ['Photon autocomplete', '/api/places?q=Dhaka'],
             ['OSRM road distance', '/api/route?origin_lat=23.8103&origin_lon=90.4125&destination_lat=23.819&destination_lon=90.418']
