@@ -170,6 +170,7 @@ async function ensureTransportSchema(env) {
   for (const [name, sql] of [
     ['fare_basis', "ALTER TABLE fare_reports ADD COLUMN fare_basis TEXT"],
     ['vehicle_variant', "ALTER TABLE fare_reports ADD COLUMN vehicle_variant TEXT"],
+    ['note', "ALTER TABLE fare_reports ADD COLUMN note TEXT NOT NULL DEFAULT ''"],
     ['origin_lat', "ALTER TABLE fare_reports ADD COLUMN origin_lat REAL"],
     ['origin_lon', "ALTER TABLE fare_reports ADD COLUMN origin_lon REAL"],
     ['destination_lat', "ALTER TABLE fare_reports ADD COLUMN destination_lat REAL"],
@@ -540,7 +541,8 @@ export default {
           "SELECT name FROM sqlite_master WHERE type='table' AND name='fare_reports'"
         ).first();
         if (!table) return json({ ok: false, error: 'Database setup incomplete' }, 503);
-        // Idempotently repair the submission rate-limit table if the D1 database is older.
+        // Repair legacy report and rate-limit schemas before declaring submissions ready.
+        await ensureTransportSchema(env);
         await ensureSubmissionSchema(env);
         // Read-only schema checks: detect older columns that block INSERTs without
         // generating fake submissions or exposing actual report data.
