@@ -294,3 +294,22 @@ test('homepage cover matches colorful traditional rickshaw reference', async () 
   assert.match(hero, /বাংলাদেশের পথে পথে/);
   assert.match(homepage, /\.hero-art:before\{display:block!important\}/);
 });
+
+test('Chapain local suggestion has a sourced, explicitly approximate coordinate for km calculation',async()=>{
+  // Two Bengali characters return local directory results without contacting Photon.
+  const {res,json} = await response('/api/places?q='+encodeURIComponent('চা'));
+  assert.equal(res.status,200);
+  const chapain=json.locations.find(x=>x.name.includes('চাপাইন'));
+  assert.ok(chapain,'Chapain should appear in hyperlocal suggestions');
+  assert.equal(chapain.requires_map_pin,false);
+  assert.equal(chapain.approximate,true);
+  assert.ok(Number.isFinite(chapain.lat)&&Number.isFinite(chapain.lon));
+  assert.match(chapain.location_hint,/আনুমানিক/);
+});
+test('route search shows km for approximate pins and requests a pin when no coordinates exist',async()=>{
+  const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  assert.match(html,/usesApproximatePin/);
+  assert.match(html,/lang\.format\(distance\)\+' কিমি'/);
+  assert.match(html,/activateMapPick\(missing\)/);
+  assert.match(html,/আনুমানিক এলাকার পিন/);
+});
