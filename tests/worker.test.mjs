@@ -257,8 +257,10 @@ test('travel landing and Bangladesh beauty pages link to completed destination s
     assert.ok(article.includes('<article class="article">'));
     assert.ok((article.match(/<h2>/g)||[]).length >= 5);
   }
+  // Local transport guides remain accessible by direct URL, but the Travel Blog
+  // landing page intentionally shows the new Gallery instead of Local Journeys.
   for (const slug of ['savar-local','local-fares']) {
-    assert.ok(journal.includes('/travel-blog/' + slug));
+    assert.ok(!journal.includes('/travel-blog/' + slug));
     const article = await readFile(new URL('../articles/' + slug + '.html', import.meta.url), 'utf8');
     assert.ok(article.includes('<article class="article">'));
   }
