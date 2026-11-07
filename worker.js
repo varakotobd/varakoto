@@ -164,9 +164,15 @@ async function ensureTransportSchema(env) {
     }
   }
   const latest = await env.DB.prepare('PRAGMA table_info(fare_reports)').all();
+  // Older D1 databases were created before local map coordinates were supported.
+  // Add all coordinate columns before running location-aware fare searches.
   for (const [name, sql] of [
     ['fare_basis', "ALTER TABLE fare_reports ADD COLUMN fare_basis TEXT"],
-    ['vehicle_variant', "ALTER TABLE fare_reports ADD COLUMN vehicle_variant TEXT"]
+    ['vehicle_variant', "ALTER TABLE fare_reports ADD COLUMN vehicle_variant TEXT"],
+    ['origin_lat', "ALTER TABLE fare_reports ADD COLUMN origin_lat REAL"],
+    ['origin_lon', "ALTER TABLE fare_reports ADD COLUMN origin_lon REAL"],
+    ['destination_lat', "ALTER TABLE fare_reports ADD COLUMN destination_lat REAL"],
+    ['destination_lon', "ALTER TABLE fare_reports ADD COLUMN destination_lon REAL"]
   ]) {
     if (!(latest.results||[]).some(c=>c.name===name)) {
       try { await env.DB.prepare(sql).run(); }
