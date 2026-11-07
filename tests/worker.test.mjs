@@ -39,7 +39,17 @@ function environment(rows = [], guideRows = []) {
             if (sql.includes('sqlite_master')) return { name: 'fare_reports' };
             return { count: 1 };
           },
-          async all() { return { results: sql.includes('FROM curated_fares') ? guideRows : rows }; },
+          async all() {
+            if(sql.includes('PRAGMA table_info(fare_reports)'))
+              return { results: ['id','origin','destination','origin_lat','origin_lon',
+                'destination_lat','destination_lon','fare','travel_date','note',
+                'vehicle_type','fare_basis','vehicle_variant','status'].map(name=>
+                  ({name,notnull:0,pk:name==='id'?1:0,dflt_value:null})) };
+            if(sql.includes('PRAGMA table_info(submission_limits)'))
+              return { results:['fingerprint','day','count'].map(name=>
+                ({name,notnull:0,pk:0,dflt_value:null})) };
+            return { results: sql.includes('FROM curated_fares') ? guideRows : rows };
+          },
           async run() { return { meta: { changes: 1 } }; }
         };
       }
