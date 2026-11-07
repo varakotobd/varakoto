@@ -61,6 +61,7 @@ test('health endpoint checks that the D1 schema exists', async () => {
   const { res, json } = await response('/api/health');
   assert.equal(res.status, 200);
   assert.equal(json.ok, true);
+  assert.equal(json.submissions_ready, true);
 });
 test('fare search never invents missing information', async () => {
   const { res, json } = await response('/api/fares?origin=সাভার&destination=নবীনগর');
@@ -349,4 +350,19 @@ test('travel blog replaces local journeys section with an accessible photo galle
   }
   assert.match(gallery, /href="\/beauty"/);
   assert.match(gallery, /loading="lazy"/);
+});
+
+test('homepage map is labelled Bangladesh-wide and resets to national bounds', async () => {
+  const page = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(page, /id="mapInfo">📍 বাংলাদেশের মানচিত্র/);
+  assert.match(page, /setText\('mapInfo','📍 বাংলাদেশের মানচিত্র'\)/);
+  assert.doesNotMatch(page, /সাভারের মানচিত্র দেখানো হচ্ছে/);
+  assert.match(page, /map\.fitBounds\(\[\[20\.55,88\.0\],\[26\.75,92\.75\]\]/);
+});
+
+test('fare reporting automatically creates missing submission limit table', async () => {
+  const code = await readFile(new URL('../worker.js', import.meta.url), 'utf8');
+  assert.match(code, /CREATE TABLE IF NOT EXISTS submission_limits/);
+  assert.match(code, /await ensureSubmissionSchema\(env\)/);
+  assert.match(code, /submissions_ready: !!env\.RATE_LIMIT_SALT/);
 });
