@@ -815,6 +815,13 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
    }
  });
  syncReportMode();
+ // Native required fields stop submit events. Show a Bengali reason when this happens.
+ $('reportForm').addEventListener('invalid',event=>{
+   const message=event.target.id==='rConsent'
+     ? 'তথ্য জমা দিতে নিচের সম্মতির ঘরে টিক দিন।'
+     : 'তথ্য জমা দিতে সব প্রয়োজনীয় ঘর সঠিকভাবে পূরণ করুন।';
+   setStatus('reportStatus',message,true);
+ },true);
  $('reportForm').addEventListener('submit',async e=>{
    e.preventDefault();
    const form=e.currentTarget;if(!form.reportValidity())return;
@@ -835,11 +842,18 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
    }
    try{
      const result=await api('/api/reports',{
-       method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)
+       method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),
+       signal:typeof AbortSignal!=='undefined' && typeof AbortSignal.timeout==='function'
+         ? AbortSignal.timeout(15000) : undefined
      });
      setStatus('reportStatus',result.message||'তথ্য জমা হয়েছে।',false,true);
      form.reset();$('rDate').value=localToday;reportCoordinates={from:null,to:null};syncReportMode();
-   }catch(err){setStatus('reportStatus',err.message||'সংযোগ সমস্যা।',true);}
+   }catch(err){
+     const message=err.name==='TimeoutError'||err.name==='AbortError'
+       ? 'সার্ভার থেকে উত্তর পেতে দেরি হচ্ছে। ইন্টারনেট সংযোগ দেখে আবার জমা দিন।'
+       : err.message||'সংযোগ সমস্যা। আবার চেষ্টা করুন।';
+     setStatus('reportStatus',message,true);
+   }
    finally{btn.disabled=false;}
  });
  $('adminLoad').addEventListener('click',async()=>{
