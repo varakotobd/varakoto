@@ -62,6 +62,7 @@ test('health endpoint checks that the D1 schema exists', async () => {
   assert.equal(res.status, 200);
   assert.equal(json.ok, true);
   assert.equal(json.submissions_ready, true);
+  assert.equal(json.daily_submission_limit, 10000);
 });
 test('fare search never invents missing information', async () => {
   const { res, json } = await response('/api/fares?origin=সাভার&destination=নবীনগর');
@@ -365,4 +366,64 @@ test('fare reporting automatically creates missing submission limit table', asyn
   assert.match(code, /CREATE TABLE IF NOT EXISTS submission_limits/);
   assert.match(code, /await ensureSubmissionSchema\(env\)/);
   assert.match(code, /submissions_ready: !!env\.RATE_LIMIT_SALT/);
+});
+
+
+test('submission cap is 10000 daily across all visitors, with pending-review confirmation', async () => {
+  const mkRequest = ip => ({
+    method: 'POST',
+    headers: {'content-type':'application/json','cf-connecting-ip':ip},
+    body: JSON.stringify({
+      origin:'সাভার নিউ মার্কেট',destination:'চাপাইন',
+      fare:20,vehicle_type:'rickshaw',fare_basis:'per_ride',
+      travel_date:'2026-11-07',consent:true
+    })
+  });
+  const envA=environment();
+  const envB=environment();
+  const resultA=await response('/api/reports',envA,mkRequest('203.0.113.10'));
+  const resultB=await response('/api/reports',envB,mkRequest('203.0.113.20'));
+  assert.equal(resultA.res.status,201);
+  assert.equal(resultB.res.status,201);
+  assert.match(resultA.json.message,/আপনার ডাটা সফলভাবে সাবমিট হয়েছে/);
+  assert.match(resultA.json.message,/যাচাইয়ের পর/);
+  const upsertA=envA.operations.find(x=>x.sql.includes('INSERT INTO submission_limits'));
+  const upsertB=envB.operations.find(x=>x.sql.includes('INSERT INTO submission_limits'));
+  assert.ok(upsertA && upsertB, 'Daily cap is recorded');
+  assert.equal(upsertA.args[0],upsertB.args[0], 'All visitor IPs share a site-wide counter');
+  assert.equal(upsertA.args[2],10000);
+  assert.match(upsertA.sql,/count < \?/);
+});
+
+test('daily submission cap sends 429 without inserting a fare report', async () => {
+  const env=environment();
+  const previous=env.DB.prepare.bind(env.DB);
+  env.DB.prepare = sql => {
+    const statement=previous(sql);
+    if(sql.includes('INSERT INTO submission_limits')){
+      statement.run=async()=>({meta:{changes:0}});
+    }
+    return statement;
+  };
+  const result=await response('/api/reports',env,{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      origin:'সাভার',destination:'নবীনগর',fare:20,
+      travel_date:'2026-11-07',consent:true
+    })
+  });
+  assert.equal(result.res.status,429);
+  assert.match(result.json.error,/১০,০০০/);
+  assert.ok(!env.operations.some(x=>x.sql.includes('INSERT INTO fare_reports')));
+});
+
+test('report form offers real place suggestions for both route inputs', async () => {
+  const page=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  for(const id of ['rFrom','rTo']){
+    assert.match(page,new RegExp('id="'+id+'"[^>]+aria-autocomplete="list"'));
+    assert.match(page,new RegExp('id="'+id+'List" class="suggestions"'));
+  }
+  assert.match(page,/function makeReportPlaceHandler\(type\)/);
+  assert.match(page,/api\('\/api\/places\?q='\+encodeURIComponent\(q\)/);
+  assert.match(page,/reportCoordinates\[type\]=isCoord\(place\)/);
 });
