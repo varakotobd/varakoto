@@ -282,7 +282,14 @@ test('all nine website pages display the uploaded official logo', async () => {
     'articles/savar-local.html', 'articles/local-fares.html'];
   for (const path of pages) {
     const html = await readFile(new URL('../' + path, import.meta.url), 'utf8');
-    assert.match(html, /<header[\s\S]*?<img[^>]+src="https:\/\/varakoto\.wordpress\.com\/wp-content\/uploads\/2026\/11\/varakoto-official-logo\.jpg"/);
-    assert.match(html, /rel="icon"[^>]+href="https:\/\/varakoto\.wordpress\.com\/wp-content\/uploads\/2026\/11\/varakoto-official-logo\.jpg"/);
+    assert.match(html, /<header[\s\S]*?<img[^>]+src="https:\/\/varakoto\.wordpress\.com\/wp-content\/uploads\/2026\/11\/varakoto-transparent-official-logo\.png"/);
+    assert.match(html, /rel="icon"[^>]+href="https:\/\/varakoto\.wordpress\.com\/wp-content\/uploads\/2026\/11\/varakoto-transparent-official-logo\.png"/);
   }
+});
+
+test('homepage displays the separate rickshaw artwork only in hero', async () => {
+  const homepage = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const hero = homepage.match(/<div class="hero-art"[^>]*>([\s\S]*?)<\/div>/)?.[1] || '';
+  assert.match(hero, /varakoto-cover-rickshaw\.gif/);
+  assert.doesNotMatch(hero, /varakoto-transparent-official-logo\.png/);
 });
