@@ -114,7 +114,7 @@ jobs:
             await page.locator('#rFare').fill('20');
             await page.locator('#rConsent').check();
             await page.locator('#reportSubmit').click();
-            await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('জমা হয়েছে'),{timeout:10000});
+            await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('সাবমিট হয়েছে'),{timeout:10000});
             assert(sentReports.length===1 && sentReports[0].fare===20, 'Rickshaw report form did not send the correct fare');
             assert(sentReports[0].fare_basis==='per_ride' && sentReports[0].consent===true, 'Incorrect report terms or consent');
             assert(Number.isFinite(sentReports[0].origin_lat) && Number.isFinite(sentReports[0].destination_lat),'Selected report suggestions must pass coordinates');
@@ -127,7 +127,7 @@ jobs:
             await page.locator('#rFare').fill('10');
             await page.locator('#rConsent').check();
             await page.locator('#reportSubmit').click();
-            await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('জমা হয়েছে'),{timeout:10000});
+            await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('সাবমিট হয়েছে'),{timeout:10000});
             assert(sentReports.length===2 && sentReports[1].fare===10, 'Auto report form did not send the correct fare');
             assert(sentReports[1].fare_basis==='per_person' && sentReports[1].vehicle_variant==='battery_auto', 'Auto person-based fare was incorrectly submitted');
             console.log('AUTO FORM SUCCESS '+JSON.stringify(sentReports[1]));
