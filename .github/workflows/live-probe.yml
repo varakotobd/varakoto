@@ -50,8 +50,8 @@ jobs:
             const headerStart = page.indexOf('<header');
             const headerEnd = page.indexOf('</header>', headerStart);
             const header = headerStart >= 0 && headerEnd >= 0 ? page.slice(headerStart,headerEnd+9) : '';
-            if (!header.includes('src="/brand/logo.png"')) {
-              throw new Error('Self-hosted official logo not found in public header: ' + path);
+            if (!header.includes('src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-official-logo.jpg"')) {
+              throw new Error('Uploaded official logo not found in public header: ' + path);
             }
           }
           console.log('Official logo confirmed on all nine public pages.');
