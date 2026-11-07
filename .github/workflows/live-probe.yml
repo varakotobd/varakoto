@@ -97,6 +97,15 @@ jobs:
             throw new Error('CRP landmark search is not returning a verified map point.');
           }
           console.log('Savar CRP local search returns a verified coordinate.');
+          const chapainResponse = await get('/api/places?q=%E0%A6%9A%E0%A6%BE');
+          const chapainJSON = await chapainResponse.json();
+          const chapain = chapainJSON.locations?.find(x => x.name.includes('চাপাইন'));
+          if (!chapainResponse.ok || !chapain || chapain.approximate !== true ||
+              !Number.isFinite(chapain.lat) || !Number.isFinite(chapain.lon) ||
+              chapain.requires_map_pin !== false) {
+            throw new Error('Chapain pin is still unavailable for calculating distance: ' + JSON.stringify(chapainJSON));
+          }
+          console.log('Chapain local geocoder has the explicitly approximate map pin:', chapain.lat, chapain.lon);
           const health = await get('/api/health');
           const status = await health.json();
           if (!health.ok || status.ok !== true) throw new Error('Database health check failed: ' + JSON.stringify(status));
