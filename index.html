@@ -428,11 +428,24 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
        const button=document.createElement('button');button.type='button';
        const icon=document.createElement('span');icon.textContent='📍';
        const text=document.createElement('span');text.textContent=place.label;
+       if(place.approximate){
+         const hint=document.createElement('small');
+         hint.textContent='এলাকার আনুমানিক পিন • চাইলে মানচিত্রে সঠিক জায়গা দিন';
+         text.append(hint);
+       }else if(place.requires_map_pin){
+         const hint=document.createElement('small');
+         hint.textContent='সঠিক দূরত্বের জন্য মানচিত্রে পিন বসাতে হবে';
+         text.append(hint);
+       }
        button.append(icon,text);
        button.addEventListener('click',()=>{
          const value=place.label.slice(0,90);
          input.value=value;selected[type]={...place,label:value};hide();
-         $('searchHint').textContent='স্থান নির্বাচন করা হয়েছে। দুটি অবস্থান হলে সড়কের দূরত্ব হিসাব হবে।';
+         $('searchHint').textContent=place.approximate
+           ? 'এলাকার একটি আনুমানিক পিন বাছা হয়েছে। সঠিক দূরত্বের জন্য ম্যাপে পিন সংশোধন করতে পারেন।'
+           : place.requires_map_pin
+             ? 'এই স্থানের নির্ভরযোগ্য পিন নেই। নিচের মানচিত্র থেকে সঠিক অবস্থান বাছুন।'
+             : 'স্থান নির্বাচন করা হয়েছে। দুটি অবস্থান হলে সড়কের দূরত্ব হিসাব হবে।';
          if(type==='from' && !$('toInput').value.trim())$('toInput').focus();
          if($('fromInput').value.trim().length>=2 && $('toInput').value.trim().length>=2){$('tripForm').requestSubmit();}
        });
@@ -662,6 +675,7 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
      const [from,to]=await Promise.all([resolveLocation('from'),resolveLocation('to')]);
      if(requestId!==searchId)return;
      latestTrip={origin,destination,from,to};
+     const usesApproximatePin=!!(from?.approximate||to?.approximate);
      const params=new URLSearchParams({origin,destination});
      if(isCoord(from)&&isCoord(to)){
        setText('mapInfo','পিকআপ ও ড্রপ চিহ্নিত; সড়কপথ খোঁজা হচ্ছে…');
@@ -669,8 +683,10 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
        params.set('destination_lat',String(to.lat));params.set('destination_lon',String(to.lon));
        drawMap(from,to,null);
        setText('distance',lang.format(haversine(from,to))+' কিমি');
-       setText('distanceType','প্রাথমিক সরলরেখার দূরত্ব');
-       setText('journeyNote','সড়কপথের দূরত্ব হিসাব হচ্ছে…');
+       setText('distanceType',usesApproximatePin?'সরলরেখা · এলাকার আনুমানিক পিন':'প্রাথমিক সরলরেখার দূরত্ব');
+       setText('journeyNote',usesApproximatePin
+         ? 'এলাকার আনুমানিক পিন থেকে রাস্তার দূরত্ব হিসাব হচ্ছে। সঠিক পিকআপ/ড্রপের জন্য নিচের মানচিত্রে পিন ঠিক করুন।'
+         : 'সড়কপথের দূরত্ব হিসাব হচ্ছে…');
      }
      const faresPromise=api('/api/estimates?'+params.toString());
      const routePromise=(isCoord(from)&&isCoord(to))
@@ -694,14 +710,22 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
          drawMap(from,to,route?.geometry);
          const distance=Number.isFinite(route?.distance_km)?route.distance_km:haversine(from,to);
          setText('distance',lang.format(distance)+' কিমি');
-         setText('distanceType',route?'আনুমানিক সড়ক দূরত্ব':'সরলরেখার দূরত্ব');
+         setText('distanceType',(route?'আনুমানিক সড়ক দূরত্ব':'সরলরেখার দূরত্ব')+(usesApproximatePin?' · আনুমানিক এলাকার পিন':''));
          setText('mapInfo',route?'🛣️ রাস্তার ওপর চিহ্নিত পথ • সড়কপথের আনুমানিক দূরত্ব':'📏 ধূসর ড্যাশ লাইন = সরলরেখার দূরত্ব; সড়কপথ পাওয়া যায়নি');
-         setText('journeyNote',(route?.description||'সড়কপথের রুট পাওয়া যায়নি; সরলরেখার দূরত্ব দেখানো হচ্ছে।')+' ভাড়া নির্ভর করে অনুমোদিত রিপোর্টের ওপর।');
+         setText('journeyNote',(route?.description||'সড়কপথের রুট পাওয়া যায়নি; সরলরেখার দূরত্ব দেখানো হচ্ছে।')+
+           (usesApproximatePin?' চাপাইনের জন্য স্থানীয় মসজিদের কাছের আনুমানিক পিন ব্যবহৃত হয়েছে; সঠিক জায়গায় মানচিত্রে পিন দিন।':'')+
+           ' ভাড়া নির্ভর করে জমা দেওয়া রিপোর্টের ওপর।');
        });
      }else{
-       setText('distance','— কিমি');setText('distanceType','লোকেশন বাছুন');
-       setText('mapInfo','📍 সাজেশন থেকে দুটি লোকেশন বাছুন');
-       setText('journeyNote','ভাড়ার তথ্য খোঁজা হয়েছে। রাস্তার দূরত্বের জন্য সাজেশন থেকে দুটি লোকেশন নির্বাচন করুন।');
+       const missing=!isCoord(from)?'from':'to';
+       setText('distance','পিন দিন');setText('distanceType','সঠিক লোকেশন প্রয়োজন');
+       activateMapPick(missing);
+       if(isCoord(from)||isCoord(to)){
+         const known=isCoord(from)?from:to;
+         if(map)map.setView([known.lat,known.lon],15,{animate:false});
+       }
+       setText('mapInfo','📍 মানচিত্রে '+(missing==='from'?'পিকআপ':'ড্রপ')+' পিন দিন; এরপর দূরত্ব দেখাবে');
+       setText('journeyNote','ভাড়ার তথ্য পাওয়া গেছে। সঠিক দূরত্বের জন্য মানচিত্রে '+(missing==='from'?'পিকআপ':'ড্রপ')+' পিন দিন।');
      }
      $('results').scrollIntoView({behavior:'smooth',block:'start'});
    }catch(err){
