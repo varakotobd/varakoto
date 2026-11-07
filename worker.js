@@ -10,6 +10,7 @@ import articleSavar from './articles/savar-local.html';
 import articleFares from './articles/local-fares.html';
 
 const TRANSPORT = ['rickshaw', 'auto'];
+const DAILY_SUBMISSION_LIMIT = 10000; // Total submissions across the site per Bangladesh calendar day.
 const ARTICLE_PAGES = {
   '/travel-blog/coxsbazar': articleCox,
   '/travel-blog/sreemangal': articleSreemangal,
@@ -456,15 +457,14 @@ async function reports(request, url, env) {
   await ensureTransportSchema(env);
   await ensureSubmissionSchema(env);
   const day = new Date(Date.now() + 6 * 3600000).toISOString().slice(0, 10);
-  const fingerprint = await sha([
-    request.headers.get('cf-connecting-ip') || 'unknown',
-    env.RATE_LIMIT_SALT, day
-  ].join('|'));
+  // One atomic D1 counter shared by all visitors: up to 10,000 submissions/day.
+  // Do not count each IP separately; that would allow more than the site-wide cap.
+  const fingerprint = await sha(['varakoto-sitewide', env.RATE_LIMIT_SALT, day].join('|'));
   const tracked = await env.DB.prepare(
     'INSERT INTO submission_limits(fingerprint,day,count) VALUES(?,?,1) ' +
-    'ON CONFLICT(fingerprint,day) DO UPDATE SET count=count+1 WHERE count<5'
-  ).bind(fingerprint, day).run();
-  if (!tracked.meta?.changes) return json({ error: 'আজকের জমার সীমা শেষ। আগামীকাল চেষ্টা করুন।' }, 429);
+    'ON CONFLICT(fingerprint,day) DO UPDATE SET count=count+1 WHERE count < ?'
+  ).bind(fingerprint, day, DAILY_SUBMISSION_LIMIT).run();
+  if (!tracked.meta?.changes) return json({ error: 'আজকের ১০,০০০টি তথ্য জমার সীমা পূর্ণ হয়েছে। আগামীকাল আবার চেষ্টা করুন।' }, 429);
   await env.DB.prepare(
     'INSERT INTO fare_reports(origin,destination,origin_lat,origin_lon,destination_lat,destination_lon,fare,travel_date,note,vehicle_type,fare_basis,vehicle_variant) ' +
     'VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
@@ -472,7 +472,7 @@ async function reports(request, url, env) {
     origin, destination, from?.lat ?? null, from?.lon ?? null, to?.lat ?? null, to?.lon ?? null,
     fare, String(body.travel_date), note, vehicle, basis, variant
   ).run();
-  return json({ ok: true, message: 'ধন্যবাদ! আপনার ভাড়ার তথ্য যাচাইয়ের জন্য জমা হয়েছে।' }, 201);
+  return json({ ok: true, message: 'আপনার ডাটা সফলভাবে সাবমিট হয়েছে। যাচাইয়ের পর প্রকাশ করা হবে।' }, 201);
 }
 async function admin(request, url, env) {
   if (!isAdmin(request, env)) return json({ error: 'অ্যাডমিন অনুমতি নেই।' }, 401);
