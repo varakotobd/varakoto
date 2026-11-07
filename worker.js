@@ -181,6 +181,18 @@ async function ensureTransportSchema(env) {
   }
   migrationFinished = true;
 }
+// Older live databases may have fare_reports but no submission_limits table.
+// Create the rate-limit table on demand so a valid fare report does not fail with HTTP 500.
+let submissionSchemaReady = false;
+async function ensureSubmissionSchema(env) {
+  if (submissionSchemaReady) return;
+  await env.DB.prepare(
+    'CREATE TABLE IF NOT EXISTS submission_limits (' +
+    'fingerprint TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 1,' +
+    'PRIMARY KEY (fingerprint, day))'
+  ).run();
+  submissionSchemaReady = true;
+}
 function summary(reports) {
   const values = reports.map(r => Number(r.fare)).filter(Number.isFinite).sort((a, b) => a - b);
   const n = values.length;
@@ -442,6 +454,7 @@ async function reports(request, url, env) {
     return json({ error: 'স্থান, পরিবহন, ভাড়া, তারিখ ও সম্মতির তথ্য যাচাই করুন।' }, 400);
   }
   await ensureTransportSchema(env);
+  await ensureSubmissionSchema(env);
   const day = new Date(Date.now() + 6 * 3600000).toISOString().slice(0, 10);
   const fingerprint = await sha([
     request.headers.get('cf-connecting-ip') || 'unknown',
@@ -526,8 +539,10 @@ export default {
         const table = await env.DB.prepare(
           "SELECT name FROM sqlite_master WHERE type='table' AND name='fare_reports'"
         ).first();
-        return table ? json({ ok: true, service: 'Vara Koto' }) :
-          json({ ok: false, error: 'Database setup incomplete' }, 503);
+        if (!table) return json({ ok: false, error: 'Database setup incomplete' }, 503);
+        // Idempotently repair the submission rate-limit table if the D1 database is older.
+        await ensureSubmissionSchema(env);
+        return json({ ok: true, service: 'Vara Koto', submissions_ready: !!env.RATE_LIMIT_SALT });
       }
       if (request.method === 'GET' && path === '/api/places') return await places(url);
       if (request.method === 'GET' && path === '/api/reverse') return await reverse(url);
