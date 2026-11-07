@@ -1,0 +1,79 @@
+name: Mobile fare search browser test
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install headless browser tools
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+      - name: Reproduce actual mobile search
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const assert = (v,m) => { if(!v) throw Error(m); };
+          const browser = await chromium.launch({ headless: true, args:['--no-sandbox'] });
+          const page = await browser.newPage({ viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1,locale:'bn-BD' });
+          const pageErrors=[];
+          page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR: '+e.message)});
+          page.on('console',m=>{if(m.type()==='error') console.log('CONSOLE ERROR: '+m.text().slice(0,300))});
+          try {
+            const response=await page.goto('https://varakoto.rickshaw.workers.dev/?e2e='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
+            assert(response.status()===200,'Homepage HTTP '+response.status());
+            await page.locator('#fromInput').fill('সাভার নিউ মার্কেট');
+            await page.locator('#toInput').fill('চাপাইন');
+            await page.locator('#findButton').click();
+            await page.waitForTimeout(8000);
+            const summary=await page.evaluate(()=>({
+              rickshaw:document.getElementById('price-rickshaw')?.textContent,
+              auto:document.getElementById('price-auto')?.textContent,
+              fare:document.getElementById('fareStatus')?.textContent,
+              distance:document.getElementById('distance')?.textContent,
+              from:document.getElementById('fromInput')?.value,
+              to:document.getElementById('toInput')?.value,
+              hint:document.getElementById('journeyNote')?.textContent,
+              overflow:document.documentElement.scrollWidth > window.innerWidth
+            }));
+            console.log('DIRECT FORM SEARCH '+JSON.stringify(summary));
+            assert(summary.rickshaw?.includes('২০') || summary.rickshaw?.includes('20'),'Rickshaw fare not shown');
+            assert(summary.auto?.includes('১০') || summary.auto?.includes('10'),'Auto fare not shown');
+            console.log('DIRECT SEARCH PASSED');
+            await page.locator('#fromInput').fill('সাভার নিউ');
+            await page.waitForTimeout(1800);
+            const matches=await page.locator('#fromList button').allTextContents();
+            console.log('PICKUP SUGGESTIONS '+JSON.stringify(matches.slice(0,6)));
+            assert(matches.some(t=>t.includes('সাভার নিউ মার্কেট')),'Expected local pickup suggestion missing');
+            await page.locator('#fromList button').filter({hasText:'সাভার নিউ মার্কেট'}).first().click();
+            await page.locator('#toInput').fill('চাপা');
+            await page.waitForTimeout(1800);
+            const toMatches=await page.locator('#toList button').allTextContents();
+            console.log('DROP SUGGESTIONS '+JSON.stringify(toMatches.slice(0,6)));
+            assert(toMatches.some(t=>t.includes('চাপাইন')),'Expected local drop suggestion missing');
+            await page.locator('#toList button').filter({hasText:'চাপাইন'}).first().click();
+            await page.waitForTimeout(7500);
+            const second=await page.evaluate(()=>({
+              rickshaw:document.getElementById('price-rickshaw')?.textContent,
+              auto:document.getElementById('price-auto')?.textContent,
+              distance:document.getElementById('distance')?.textContent,
+              note:document.getElementById('journeyNote')?.textContent,
+              bodyWidth:document.body.scrollWidth,
+              viewportWidth:window.innerWidth
+            }));
+            console.log('SUGGESTION SEARCH '+JSON.stringify(second));
+            assert(second.rickshaw?.includes('২০') || second.rickshaw?.includes('20'),'Suggested pickup/drop rickshaw fare not shown');
+            assert(second.auto?.includes('১০') || second.auto?.includes('10'),'Suggested pickup/drop auto fare not shown');
+            assert(!second.distance?.includes('—'),'Distance missing after selecting both mapped places');
+            assert(second.bodyWidth<=second.viewportWidth + 2,'Mobile layout overflows viewport');
+            console.log('MOBILE E2E PASSED; page errors: '+JSON.stringify(pageErrors));
+          } finally {
+            await browser.close();
+          }
+          JS
