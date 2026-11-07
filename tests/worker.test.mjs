@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
+import { DatabaseSync } from 'node:sqlite';
 
 const source = await readFile(new URL('../worker.js', import.meta.url), 'utf8');
 const logoModule = await readFile(new URL('../brand-logo.js', import.meta.url), 'utf8');
@@ -436,4 +437,73 @@ test('report form offers real place suggestions for both route inputs', async ()
   assert.match(page,/function makeReportPlaceHandler\(type\)/);
   assert.match(page,/api\('\/api\/places\?q='\+encodeURIComponent\(q\)/);
   assert.match(page,/reportCoordinates\[type\]=isCoord\(place\)/);
+});
+
+
+test('legacy production-like SQLite database migrates and really saves a fare report', async () => {
+  // Unlike mocked D1 tests, this runs real SQLite INSERTs into a legacy
+  // database missing note, coordinates, vehicle columns and submission_limits.
+  const sqlite = new DatabaseSync(':memory:');
+  try {
+    sqlite.exec("CREATE TABLE fare_reports (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, origin TEXT NOT NULL," +
+      "destination TEXT NOT NULL, fare INTEGER NOT NULL," +
+      "travel_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending')");
+    const legacyWorker = factory('<html>Test</html>','<html>Test</html>',
+      '<html>Test</html>','<html>Test</html>','<html>Test</html>',
+      '<html>Test</html>','<html>Test</html>','<html>Test</html>',
+      '<html>Test</html>',testLogo,
+      value=>Buffer.from(value,'base64').toString('binary'),
+      webcrypto,TextEncoder,Response,URL);
+    const env = {
+      RATE_LIMIT_SALT: 'test-only-salt',
+      DB:{
+        prepare(sql){
+          const statement=sqlite.prepare(sql);
+          const wrapper={
+            bindings:[],
+            bind(...args){ this.bindings=args;return this; },
+            async run(){
+              const meta=statement.run(...this.bindings);
+              return {meta:{changes:Number(meta.changes)}};
+            },
+            async all(){return {results:statement.all(...this.bindings)};},
+            async first(){return statement.get(...this.bindings)||null;}
+          };
+          return wrapper;
+        }
+      }
+    };
+    const day=new Date(Date.now()+6*3600000).toISOString().slice(0,10);
+    const makeRequest=()=>new Request(url('/api/reports'),{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        origin:'সাভার নিউ মার্কেট',destination:'সিআরপি',
+        fare:20,travel_date:day,vehicle_type:'rickshaw',
+        fare_basis:'per_ride',consent:true,note:''
+      })
+    });
+    const response1=await legacyWorker.fetch(makeRequest(),env);
+    const data=await response1.json();
+    assert.equal(response1.status,201,JSON.stringify(data));
+    assert.equal(data.ok,true);
+    assert.match(data.message,/আপনার ডাটা সফলভাবে সাবমিট হয়েছে/);
+    const saved=sqlite.prepare('SELECT origin,destination,fare,note,status FROM fare_reports').get();
+    assert.equal(saved.origin,'সাভার নিউ মার্কেট');
+    assert.equal(saved.destination,'সিআরপি');
+    assert.equal(saved.fare,20);
+    assert.equal(saved.note,'');
+    assert.equal(saved.status,'pending');
+    const count=sqlite.prepare('SELECT count FROM submission_limits').get().count;
+    assert.equal(count,1);
+    const todayKey=sqlite.prepare('SELECT fingerprint,day FROM submission_limits').get();
+    sqlite.prepare('UPDATE submission_limits SET count=10000 WHERE fingerprint=? AND day=?')
+      .run(todayKey.fingerprint,todayKey.day);
+    const response2=await legacyWorker.fetch(makeRequest(),env);
+    assert.equal(response2.status,429);
+    assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM fare_reports').get().n,1);
+  } finally {
+    sqlite.close();
+  }
 });
