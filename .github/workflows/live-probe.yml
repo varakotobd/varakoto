@@ -108,8 +108,11 @@ jobs:
           console.log('Chapain local geocoder has the explicitly approximate map pin:', chapain.lat, chapain.lon);
           const health = await get('/api/health');
           const status = await health.json();
-          if (!health.ok || status.ok !== true) throw new Error('Database health check failed: ' + JSON.stringify(status));
+          if (!health.ok || status.ok !== true || status.submissions_ready !== true) throw new Error('D1 and fare submission are not ready: ' + JSON.stringify(status));
           console.log('D1 database health check passed.');
+          const mapHTML = await (await get('/?country-map=' + Date.now())).text();
+          if (!mapHTML.includes('id="mapInfo">📍 বাংলাদেশের মানচিত্র')) throw new Error('National map label is absent from homepage.');
+          console.log('Bangladesh-wide map label is visible.');
 
           // Non-mutating validation probe: an invalid submission must return HTTP 400
           // without creating a fare report.
