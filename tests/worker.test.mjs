@@ -289,8 +289,8 @@ test('all nine website pages display the uploaded official logo', async () => {
 
 test('homepage cover matches colorful traditional rickshaw reference', async () => {
   const homepage = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  const hero = homepage.match(/<div class="hero-art"[^>]*>([\\s\\S]*?)<\\/div>/)?.[1] || '';
-  assert.match(hero, /varakoto-transparent-official-logo\\.png/);
+  const hero = homepage.match(/<div class="hero-art"[^>]*>([\s\S]*?)<\/div>/)?.[1] || '';
+  assert.match(hero, /varakoto-transparent-official-logo\.png/);
   assert.match(hero, /বাংলাদেশের পথে পথে/);
-  assert.match(homepage, /\\.hero-art:before\\{display:block!important\\}/);
+  assert.match(homepage, /\.hero-art:before\{display:block!important\}/);
 });
