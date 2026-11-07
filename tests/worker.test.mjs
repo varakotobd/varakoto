@@ -276,13 +276,13 @@ test('official uploaded logo is a complete PNG and served from our own domain', 
   const image = Buffer.from(await res.arrayBuffer());
   assert.deepEqual(image, bytes);
 });
-test('all nine website pages use the self-hosted logo', async () => {
+test('all nine website pages display the uploaded official logo', async () => {
   const pages = ['index.html', 'beauty.html', 'travel-blog.html', 'about.html',
     'articles/coxsbazar.html', 'articles/sreemangal.html', 'articles/ratargul.html',
     'articles/savar-local.html', 'articles/local-fares.html'];
   for (const path of pages) {
     const html = await readFile(new URL('../' + path, import.meta.url), 'utf8');
-    assert.match(html, /<header[\s\S]*?<img[^>]+src="\/brand\/logo\.png"/);
-    assert.match(html, /rel="icon"[^>]+href="\/brand\/logo\.png"/);
+    assert.match(html, /<header[\s\S]*?<img[^>]+src="https:\/\/varakoto\.wordpress\.com\/wp-content\/uploads\/2026\/11\/varakoto-official-logo\.jpg"/);
+    assert.match(html, /rel="icon"[^>]+href="https:\/\/varakoto\.wordpress\.com\/wp-content\/uploads\/2026\/11\/varakoto-official-logo\.jpg"/);
   }
 });
