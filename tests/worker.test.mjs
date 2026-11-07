@@ -332,3 +332,19 @@ test('Savar New Market fares also match common English typo and Chapain aliases'
     assert.equal(json.vehicles.find(x=>x.id==='auto').reference?.fare,10);
   }
 });
+
+
+test('travel blog replaces local journeys section with an accessible photo gallery', async () => {
+  const page = await readFile(new URL('../travel-blog.html', import.meta.url), 'utf8');
+  assert.match(page, /id="gallery"/);
+  assert.match(page, /গ্যালারি — ছবিতে সুন্দর বাংলাদেশ/);
+  assert.doesNotMatch(page, /LOCAL JOURNEYS/);
+  assert.doesNotMatch(page, /class="local-grid"/);
+  const gallery = page.match(/<section id="gallery"[\s\S]*?<\/section>/)?.[0] || '';
+  assert.equal((gallery.match(/class="gallery-photo"/g) || []).length, 3);
+  for (const slug of ['coxsbazar', 'sreemangal', 'ratargul']) {
+    assert.match(gallery, new RegExp('/travel-blog/' + slug));
+  }
+  assert.match(gallery, /href="\/beauty"/);
+  assert.match(gallery, /loading="lazy"/);
+});
