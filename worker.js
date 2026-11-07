@@ -1,4 +1,5 @@
 import html from './index.html';
+import { logoBase64 } from './brand-logo.js';
 import beauty from './beauty.html';
 import journal from './travel-blog.html';
 import about from './about.html';
@@ -483,6 +484,17 @@ export default {
     const url = new URL(request.url), path = url.pathname;
     const tempDomain = url.hostname.endsWith('.workers.dev');
     try {
+      if ((request.method === 'GET' || request.method === 'HEAD') && (path === '/brand/logo.png' || path === '/favicon.ico')) {
+        const image = Uint8Array.from(atob(logoBase64), char => char.charCodeAt(0));
+        return new Response(request.method === 'HEAD' ? null : image, {
+          headers: {
+            ...commonHeaders,
+            'content-type': 'image/png',
+            'cache-control': 'public, max-age=3600',
+            'x-content-type-options': 'nosniff'
+          }
+        });
+      }
       if ((request.method === 'GET' || request.method === 'HEAD') && (path === '/' || path === '/index.html' || path === '/beauty' || path === '/beauty/' || path === '/travel-blog' || path === '/travel-blog/' || path === '/about' || path === '/about/' || !!ARTICLE_PAGES[path.replace(/\/$/, '')])) {
         const headers = {
           ...commonHeaders,
