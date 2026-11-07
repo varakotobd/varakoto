@@ -229,6 +229,13 @@ html{scroll-behavior:auto}
 .hero-art img{display:block;height:min(460px,52vw);width:auto;max-width:96%;max-height:460px;object-fit:contain;filter:drop-shadow(0 18px 15px rgba(75,57,24,.18))}
 .brand-icon img{background:transparent!important;padding:0!important;border-radius:0!important}
 @media(max-width:640px){.hero-inner{display:flex;flex-direction:column;gap:10px}.hero-art{display:grid!important;min-height:320px;width:100%}.hero-art:before{width:min(88%,315px)}.hero-art img{height:315px;max-height:315px;max-width:93%}}
+
+/* Use the official traditional Bangladeshi rickshaw artwork, not the auto-rickshaw emoji. */
+.vk-rickshaw-icon{display:inline-block;width:1.6em;height:1.8em;max-width:none;object-fit:contain;vertical-align:-.45em;flex-shrink:0;background:none}
+.hero-eyebrow .vk-rickshaw-icon{width:22px;height:25px;vertical-align:middle;margin-right:4px}
+.hero-tags .vk-rickshaw-icon{width:21px;height:25px;vertical-align:middle;margin-right:3px}
+.feature-icon .vk-rickshaw-icon{width:37px;height:43px}
+.footer-brand .vk-rickshaw-icon{width:35px;height:40px;vertical-align:middle;margin-right:4px}
 </style>
 <link rel="icon" type="image/png" href="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png"><style id="official-logo-branding">
 /* Official colorful rickshaw artwork, retained across all pages */
@@ -254,10 +261,10 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
 <section class="hero">
  <div class="wrap hero-inner">
   <div>
-   <span class="hero-eyebrow">🛺 বাংলাদেশের স্থানীয় যাতায়াত</span>
+   <span class="hero-eyebrow"><img class="vk-rickshaw-icon" src="/brand/logo.png" alt="" aria-hidden="true" width="25" height="28" loading="eager"> বাংলাদেশের স্থানীয় যাতায়াত</span>
    <h1>আপনি <span>কোথায়</span><br>যাবেন?</h1>
    <p>যাত্রার শুরু আর গন্তব্য লিখুন। বাস্তব মানচিত্রে রুট ও দূরত্ব দেখুন, রিকশা ও অটো/লেগুনার স্থানীয় ভাড়ার তথ্য জানুন—এক স্ক্রিনেই।</p>
-   <ul class="hero-tags"><li>🛺 রিকশা</li><li>🚐 ব্যাটারি অটো / লেগুনা</li></ul>
+   <ul class="hero-tags"><li><img class="vk-rickshaw-icon" src="/brand/logo.png" alt="" aria-hidden="true" width="25" height="28" loading="eager"> রিকশা</li><li>🚐 ব্যাটারি অটো / লেগুনা</li></ul>
   </div>
   <div class="hero-art" aria-label="বাংলাদেশের ঐতিহ্যবাহী রঙিন রিকশা">
    <img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png" alt="ভাড়া কত? লেখা বাংলাদেশের ঐতিহ্যবাহী রঙিন রিকশা" width="496" height="720" loading="eager" decoding="async">
@@ -329,7 +336,7 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
   <p class="section-desc">লোকেশন বাছুন, বাস্তব সড়ক রুট দেখুন এবং শেয়ার করা স্থানীয় ভাড়া বা অনুমোদিত রিপোর্ট থেকে ধারণা নিন।</p>
   <div class="feature-grid">
    <div class="feature"><div class="feature-icon">📍</div><h3>১. যাত্রার স্থান বাছুন</h3><p>সার্চে স্থান লিখে সম্ভাব্য ঠিকানা থেকে পিকআপ ও গন্তব্য নির্বাচন করুন।</p></div>
-   <div class="feature"><div class="feature-icon">🛺</div><h3>২. দূরত্ব ও ভাড়া দেখুন</h3><p>মানচিত্রে আনুমানিক রাস্তার দূরত্ব এবং পাওয়া গেলে অনুমোদিত ভাড়ার রিপোর্ট দেখুন।</p></div>
+   <div class="feature"><div class="feature-icon"><img class="vk-rickshaw-icon" src="/brand/logo.png" alt="" aria-hidden="true" width="25" height="28" loading="eager"></div><h3>২. দূরত্ব ও ভাড়া দেখুন</h3><p>মানচিত্রে আনুমানিক রাস্তার দূরত্ব এবং পাওয়া গেলে অনুমোদিত ভাড়ার রিপোর্ট দেখুন।</p></div>
    <div class="feature"><div class="feature-icon">🤝</div><h3>৩. নিজের ভাড়া জানান</h3><p>আপনার দেওয়া ভাড়া ও প্রতি ব্যক্তি/পুরো গাড়ি কোন হিসাবে দিয়েছেন, তা যাচাইয়ের পর কাজে লাগবে।</p></div>
   </div>
  </div>
@@ -376,7 +383,7 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
 <footer class="footer">
  <div class="wrap">
   <div class="footer-row">
-   <div><span class="footer-brand">🛺 ভাড়া কত?</span><p>সারা বাংলাদেশের স্থানীয় যানবাহনের কমিউনিটি-ভিত্তিক ভাড়ার তথ্য। আনুমানিক ভাড়া; সরকারি নির্ধারিত বা নিশ্চিত ভাড়া নয়।</p></div>
+   <div><span class="footer-brand"><img class="vk-rickshaw-icon" src="/brand/logo.png" alt="" aria-hidden="true" width="25" height="28" loading="eager"> ভাড়া কত?</span><p>সারা বাংলাদেশের স্থানীয় যানবাহনের কমিউনিটি-ভিত্তিক ভাড়ার তথ্য। আনুমানিক ভাড়া; সরকারি নির্ধারিত বা নিশ্চিত ভাড়া নয়।</p></div>
    <nav><a href="/beauty">বাংলাদেশের সৌন্দর্য</a><a href="/travel-blog">ভ্রমণ ব্লগ</a><a href="/about">আমাদের সম্পর্কে</a></nav>
   </div>
   <div class="footer-base">© <span id="year">2026</span> Vara Koto · বাংলাদেশ · লোকেশন সার্চে Photon এবং OpenStreetMap তথ্য ব্যবহৃত হয়।</div>
