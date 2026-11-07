@@ -222,8 +222,14 @@ html{scroll-behavior:auto}
 .hero-art img,.hero-art .floating-note,.card,.card:hover,.explore-inner img,.map-controls button{animation:none!important;transform:none!important;transition:none!important}
 .route-marker-wrap,.route-marker{animation:none!important}
 @media(max-width:640px){.trip-result{gap:12px}.trip-main{padding:16px}.map-heading{padding:14px}}
+
+/* Homepage: restore separate rickshaw image, retain transparent logo only in branding */
+.hero-art:before{display:none!important}
+.hero-art{min-height:365px;isolation:isolate}
+.hero-art img{display:block;width:min(400px,95%);max-width:95%;height:auto;max-height:390px;object-fit:contain;filter:drop-shadow(0 18px 15px rgba(75,57,24,.18))}
+@media(max-width:640px){.hero-inner{display:flex;flex-direction:column;gap:10px}.hero-art{display:grid!important;min-height:240px;width:100%}.hero-art img{width:min(290px,90%);max-height:300px}}
 </style>
-<link rel="icon" type="image/jpeg" href="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-official-logo.jpg"><style id="official-logo-branding">
+<link rel="icon" type="image/png" href="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png"><style id="official-logo-branding">
 /* Official colorful rickshaw artwork, retained across all pages */
 a.brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;line-height:1.2}
 a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contain;flex:none;background:#fff;padding:3px;border-radius:9px}
@@ -235,7 +241,7 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
 <header class="site-header">
  <div class="wrap header-inner">
   <a class="brand" href="/" aria-label="ভাড়া কত? হোম">
-   <span class="brand-icon"><img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-official-logo.jpg" alt="ভাড়া কত? রঙিন রিকশা লোগো" width="62" height="62"></span>
+   <span class="brand-icon"><img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png" alt="ভাড়া কত? রঙিন রিকশা লোগো" width="62" height="62"></span>
    <span><span class="brand-title">ভাড়া কত?</span><span class="brand-sub">VARAKOTO · BANGLADESH</span></span>
   </a>
   <nav class="nav" aria-label="প্রধান নেভিগেশন">
@@ -252,9 +258,8 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
    <p>যাত্রার শুরু আর গন্তব্য লিখুন। বাস্তব মানচিত্রে রুট ও দূরত্ব দেখুন, রিকশা ও অটো/লেগুনার স্থানীয় ভাড়ার তথ্য জানুন—এক স্ক্রিনেই।</p>
    <ul class="hero-tags"><li>🛺 রিকশা</li><li>🚐 ব্যাটারি অটো / লেগুনা</li></ul>
   </div>
-  <div class="hero-art" aria-hidden="true">
-   <img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-official-logo.jpg" alt="" width="496" height="720">
-   <span class="floating-note">📍 বাংলাদেশের পথে পথে</span>
+  <div class="hero-art" aria-label="বাংলাদেশের রিকশার চলমান ছবি">
+   <img src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-cover-rickshaw.gif" alt="বাংলাদেশের রঙিন রিকশা ও চালক" width="360" height="360" loading="eager" decoding="async">
   </div>
  </div>
 </section>
