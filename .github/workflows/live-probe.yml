@@ -54,7 +54,7 @@ jobs:
               const headerEnd = page.indexOf('</header>', headerStart);
               const header = headerStart >= 0 && headerEnd >= 0 ? page.slice(headerStart,headerEnd+9) : '';
               if (header.includes('src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png"')) {
-                if (path === '/' && !page.includes('varakoto-cover-rickshaw.gif')) {
+                if (path === '/' && (!page.includes('class="hero-art"') || !page.includes('📍 বাংলাদেশের পথে পথে'))) {
                   throw new Error('Homepage rickshaw cover image is missing.');
                 }
                 found = true;
