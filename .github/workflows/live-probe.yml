@@ -43,16 +43,26 @@ jobs:
             throw new Error('Official branded image failed to load from the public Worker.');
           }
           console.log('Official logo image loads directly from the Vara Koto website.');
+          const release = '?release=' + process.env.GITHUB_SHA;
           for (const path of ['/', '/beauty', '/travel-blog', '/about',
             '/travel-blog/coxsbazar', '/travel-blog/sreemangal',
             '/travel-blog/ratargul', '/travel-blog/savar-local', '/travel-blog/local-fares']) {
-            const page = await (await get(path)).text();
-            const headerStart = page.indexOf('<header');
-            const headerEnd = page.indexOf('</header>', headerStart);
-            const header = headerStart >= 0 && headerEnd >= 0 ? page.slice(headerStart,headerEnd+9) : '';
-            if (!header.includes('src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png"')) {
-              throw new Error('Uploaded official logo not found in public header: ' + path);
+            let found = false;
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              const page = await (await get(path + release)).text();
+              const headerStart = page.indexOf('<header');
+              const headerEnd = page.indexOf('</header>', headerStart);
+              const header = headerStart >= 0 && headerEnd >= 0 ? page.slice(headerStart,headerEnd+9) : '';
+              if (header.includes('src="https://varakoto.wordpress.com/wp-content/uploads/2026/11/varakoto-transparent-official-logo.png"')) {
+                if (path === '/' && !page.includes('varakoto-cover-rickshaw.gif')) {
+                  throw new Error('Homepage rickshaw cover image is missing.');
+                }
+                found = true;
+                break;
+              }
+              if (attempt !== 6) await sleep(3500);
             }
+            if (!found) throw new Error('Transparent logo is not yet deployed in public page: ' + path);
           }
           console.log('Official logo confirmed on all nine public pages.');
           for (const [path, heading] of [
