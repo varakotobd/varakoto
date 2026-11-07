@@ -110,6 +110,18 @@ jobs:
           const status = await health.json();
           if (!health.ok || status.ok !== true) throw new Error('Database health check failed: ' + JSON.stringify(status));
           console.log('D1 database health check passed.');
+
+          // Non-mutating validation probe: an invalid submission must return HTTP 400
+          // without creating a fare report.
+          const submitCheck = await fetch(base+'/api/reports',{
+            method:'POST',
+            headers:{'content-type':'application/json','origin':base},
+            body:JSON.stringify({origin:'সাভার',destination:'সাভার',fare:0,consent:false})
+          });
+          const submitBody = await submitCheck.json();
+          console.log('SUBMISSION VALIDATION PROBE:', submitCheck.status, JSON.stringify(submitBody));
+          if(submitCheck.status!==400) throw new Error('Fare submission flow unavailable before data validation: '+JSON.stringify(submitBody));
+
           const estimates = await get('/api/estimates?origin=Savar&destination=Nabinagar');
           const data = await estimates.json();
           if (!estimates.ok || !Array.isArray(data.vehicles) || data.vehicles.length !== 2) {
