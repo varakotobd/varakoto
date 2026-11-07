@@ -324,7 +324,7 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
     <button id="pickFrom" type="button" aria-pressed="false">📍 মানচিত্রে পিকআপ দিন</button>
     <button id="pickTo" type="button" aria-pressed="false">🏁 ড্রপ দিন</button><button id="gpsToggle" type="button" aria-pressed="false">◎ নিজের লাইভ লোকেশন</button>
    </div>
-   <div class="map-footer"><span id="mapInfo">📍 সাভারের বাস্তব মানচিত্র</span><button id="mapReset" type="button">রিসেট</button></div>
+   <div class="map-footer"><span id="mapInfo">📍 বাংলাদেশের মানচিত্র</span><button id="mapReset" type="button">রিসেট</button></div>
    <div class="map-note">OpenStreetMap-এর বাস্তব রাস্তা; রুট ও দূরত্ব OSRM/Valhalla দ্বারা আনুমানিক। লোকাল অটো/রিকশার পথ ভিন্ন হতে পারে।</div>
   </aside>
  </div>
@@ -527,8 +527,13 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
  }
  function loadMap(){
    if(map||!window.L)return;
-   map=L.map('map',{scrollWheelZoom:false}).setView([23.85068,90.25932],12);
-   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
+   // Keep OpenStreetMap/Leaflet; show the full country until a route is selected.
+   map=L.map('map',{scrollWheelZoom:false,preferCanvas:true,zoomControl:true});
+   map.fitBounds([[20.55,88.0],[26.75,92.75]],{padding:[16,16],maxZoom:8,animate:false});
+   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+     attribution:'© OpenStreetMap contributors',maxZoom:19,updateWhenIdle:true,
+     keepBuffer:3,crossOrigin:true
+   }).addTo(map);
    map.on('click',async event=>{
      if(!mapPickTarget)return;
      const type=mapPickTarget;
@@ -628,8 +633,10 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
  });
  window.addEventListener('pagehide',stopGPS);
  $('mapReset').addEventListener('click',()=>{
-   clearMap();loadMap();if(map){map.setView([23.85068,90.25932],12);map.invalidateSize();}
-   setText('mapInfo','📍 সাভারের মানচিত্র দেখানো হচ্ছে');
+   clearMap();loadMap();mapPickTarget=null;
+   for(const id of ['pickFrom','pickTo'])$(id).setAttribute('aria-pressed','false');
+   if(map){map.fitBounds([[20.55,88.0],[26.75,92.75]],{padding:[16,16],maxZoom:8,animate:false});map.invalidateSize();}
+   setText('mapInfo','📍 বাংলাদেশের মানচিত্র');
  });
  function activateMapPick(type){
    loadMap();
