@@ -84,7 +84,42 @@ jobs:
             assert(second.auto?.includes('১০') || second.auto?.includes('10'),'Suggested pickup/drop auto fare not shown');
             assert(!second.distance?.includes('—'),'Distance missing after selecting both mapped places');
             assert(second.bodyWidth<=second.viewportWidth + 2,'Mobile layout overflows viewport');
-            console.log('MOBILE E2E PASSED; page errors: '+JSON.stringify(pageErrors));
+
+            // Verify the real on-screen fare submission form without adding fabricated
+            // travel reports to the production D1 database.
+            const reportHealth=await page.request.get('https://varakoto.rickshaw.workers.dev/api/health');
+            const healthData=await reportHealth.json();
+            console.log('REPORT HEALTH '+JSON.stringify(healthData));
+            assert(healthData.submissions_ready===true, 'Fare submissions are disabled by missing server configuration.');
+            const sentReports=[];
+            await page.route('**/api/reports',async route=>{
+              const payload=JSON.parse(route.request().postData());
+              sentReports.push(payload);
+              await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({ok:true,message:'ধন্যবাদ! আপনার ভাড়ার তথ্য যাচাইয়ের জন্য জমা হয়েছে।'})});
+            });
+            await page.locator('#rFrom').fill('সাভার নিউ মার্কেট');
+            await page.locator('#rTo').fill('চাপাইন');
+            await page.locator('#rMode').selectOption('rickshaw');
+            await page.locator('#rFare').fill('20');
+            await page.locator('#rConsent').check();
+            await page.locator('#reportSubmit').click();
+            await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('জমা হয়েছে'),{timeout:10000});
+            assert(sentReports.length===1 && sentReports[0].fare===20, 'Rickshaw report form did not send the correct fare');
+            assert(sentReports[0].fare_basis==='per_ride' && sentReports[0].consent===true, 'Incorrect report terms or consent');
+            console.log('RICKSHAW FORM SUCCESS '+JSON.stringify(sentReports[0]));
+            await page.locator('#rFrom').fill('সাভার নিউ মার্কেট');
+            await page.locator('#rTo').fill('চাপাইন');
+            await page.locator('#rMode').selectOption('auto');
+            await page.locator('#rVariant').selectOption('battery_auto');
+            await page.locator('#rFare').fill('10');
+            await page.locator('#rConsent').check();
+            await page.locator('#reportSubmit').click();
+            await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('জমা হয়েছে'),{timeout:10000});
+            assert(sentReports.length===2 && sentReports[1].fare===10, 'Auto report form did not send the correct fare');
+            assert(sentReports[1].fare_basis==='per_person' && sentReports[1].vehicle_variant==='battery_auto', 'Auto person-based fare was incorrectly submitted');
+            console.log('AUTO FORM SUCCESS '+JSON.stringify(sentReports[1]));
+            console.log('MOBILE E2E + FARE SUBMISSION UI PASSED; page errors: '+JSON.stringify(pageErrors));
+
           } finally {
             await browser.close();
           }
