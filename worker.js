@@ -542,7 +542,7 @@ export default {
         if (!table) return json({ ok: false, error: 'Database setup incomplete' }, 503);
         // Idempotently repair the submission rate-limit table if the D1 database is older.
         await ensureSubmissionSchema(env);
-        return json({ ok: true, service: 'Vara Koto', submissions_ready: !!env.RATE_LIMIT_SALT });
+        return json({ ok: true, service: 'Vara Koto', submissions_ready: !!env.RATE_LIMIT_SALT, daily_submission_limit: DAILY_SUBMISSION_LIMIT });
       }
       if (request.method === 'GET' && path === '/api/places') return await places(url);
       if (request.method === 'GET' && path === '/api/reverse') return await reverse(url);
