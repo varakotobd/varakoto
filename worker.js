@@ -542,7 +542,32 @@ export default {
         if (!table) return json({ ok: false, error: 'Database setup incomplete' }, 503);
         // Idempotently repair the submission rate-limit table if the D1 database is older.
         await ensureSubmissionSchema(env);
-        return json({ ok: true, service: 'Vara Koto', submissions_ready: !!env.RATE_LIMIT_SALT, daily_submission_limit: DAILY_SUBMISSION_LIMIT });
+        // Read-only schema checks: detect older columns that block INSERTs without
+        // generating fake submissions or exposing actual report data.
+        const fareInfo = await env.DB.prepare('PRAGMA table_info(fare_reports)').all();
+        const limitInfo = await env.DB.prepare('PRAGMA table_info(submission_limits)').all();
+        const fareCols = fareInfo.results || [], limitCols = limitInfo.results || [];
+        const fareInsertNames = ['origin','destination','origin_lat','origin_lon',
+          'destination_lat','destination_lon','fare','travel_date','note',
+          'vehicle_type','fare_basis','vehicle_variant'];
+        const limitInsertNames = ['fingerprint','day','count'];
+        const missingFareColumns = fareInsertNames.filter(name => !fareCols.some(c=>c.name===name));
+        const unexpectedRequiredColumns = fareCols.filter(c =>
+          Number(c.notnull) === 1 && Number(c.pk)!==1 && c.dflt_value==null &&
+          !fareInsertNames.includes(c.name)).map(c=>c.name);
+        const missingLimitColumns = limitInsertNames.filter(name => !limitCols.some(c=>c.name===name));
+        return json({
+          ok: true, service: 'Vara Koto',
+          submissions_ready: !!env.RATE_LIMIT_SALT &&
+            !missingFareColumns.length && !unexpectedRequiredColumns.length &&
+            !missingLimitColumns.length,
+          daily_submission_limit: DAILY_SUBMISSION_LIMIT,
+          submission_schema: {
+            missing_fare_columns:missingFareColumns,
+            unexpected_required_fare_columns:unexpectedRequiredColumns,
+            missing_limit_columns:missingLimitColumns
+          }
+        });
       }
       if (request.method === 'GET' && path === '/api/places') return await places(url);
       if (request.method === 'GET' && path === '/api/reverse') return await reverse(url);
