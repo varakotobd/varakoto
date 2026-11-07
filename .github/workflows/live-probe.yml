@@ -47,7 +47,9 @@ jobs:
             '/travel-blog/coxsbazar', '/travel-blog/sreemangal',
             '/travel-blog/ratargul', '/travel-blog/savar-local', '/travel-blog/local-fares']) {
             const page = await (await get(path)).text();
-            const header = page.match(/<header[\\s\\S]*?<\\/header>/i)?.[0] || '';
+            const headerStart = page.indexOf('<header');
+            const headerEnd = page.indexOf('</header>', headerStart);
+            const header = headerStart >= 0 && headerEnd >= 0 ? page.slice(headerStart,headerEnd+9) : '';
             if (!header.includes('src="/brand/logo.png"')) {
               throw new Error('Self-hosted official logo not found in public header: ' + path);
             }
