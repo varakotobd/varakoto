@@ -24,7 +24,7 @@ const BD = { minLat: 20, maxLat: 27, minLon: 88, maxLon: 93 };
 // These are route references, NOT government tariffs or independently verified rides.
 const LANDMARKS = [
   { id:'savar_new_market', name:'সাভার নিউ মার্কেট', aliases:['savar new market','new market','newmarket','সাভার নিউ মার্কেট','সাভার নিউমার্কেট','নিউ মার্কেট','নিউমার্কেট'], lat:23.8506418, lon:90.2590522 },
-  { id:'chapain', name:'চাপাইন, সাভার', aliases:['chapain','চাপাইন','চাপাই','চাপাইন সাভার'], lat:null, lon:null },
+  { id:'chapain', name:'চাপাইন, সাভার', aliases:['chapain','চাপাইন','চাপাই','চাপাইন সাভার'], lat:23.85121, lon:90.26947, approximate:true, location_hint:'চাপাইন বায়তুল মামুর জামে মসজিদের নিকটবর্তী আনুমানিক পিন; সঠিক ওঠানামার জায়গায় পিন ঠিক করুন।' },
   { id:'dewga', name:'দেওগা বাজার, সাভার', aliases:['dewga bazar','dewga bazaar','dewga','deoga bazar','deoga bazaar','দেওগা বাজার','দেওগাঁ বাজার','দেউগা বাজার','দেওগা'], lat:null, lon:null },
   { id:'crp', name:'সিআরপি, সাভার', aliases:['crp','crp savar','centre for the rehabilitation of the paralysed','সিআরপি','সিআরপি সাভার'], lat:23.8545053, lon:90.2602316 },
   { id:'radio_colony', name:'রেডিও কলোনি, সাভার', aliases:['radio colony','radio colony savar','savar colony','colony','রেডিও কলোনি','রেডিও কলোনী','কলোনি','কলোনী'], lat:23.858713, lon:90.262322 },
@@ -199,7 +199,8 @@ async function places(url) {
     return alias.includes(term)||term.includes(alias);
   })).slice(0,5).map(p=>({
     name:p.name,label:p.name,lat:p.lat,lon:p.lon,local:true,
-    // null coordinates mean that a pin has not been independently established.
+    approximate:!!p.approximate, location_hint:p.location_hint||null,
+    // A location without known coordinates needs a user-selected map pin.
     requires_map_pin:p.lat==null
   }));
   if(query.length<3)return json({ locations:local, attribution:'Local route directory' });
