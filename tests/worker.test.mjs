@@ -313,3 +313,22 @@ test('route search shows km for approximate pins and requests a pin when no coor
   assert.match(html,/activateMapPick\(missing\)/);
   assert.match(html,/আনুমানিক এলাকার পিন/);
 });
+
+test('Savar New Market fares also match common English typo and Chapain aliases', async () => {
+  const guideRows = [
+    {vehicle_type:'rickshaw',fare:20,fare_basis:'per_ride',vehicle_variant:'rickshaw',source_note:''},
+    {vehicle_type:'auto',fare:10,fare_basis:'per_person',vehicle_variant:'battery_auto',source_note:''}
+  ];
+  for (const [origin,destination] of [
+    ['Savar New Markt','Chapain'],
+    ['নিউ মার্কেট সাভার','চাপাইন বাজার'],
+    ['New Market Savar','Chapain Savar']
+  ]) {
+    const search = new URLSearchParams({origin,destination});
+    const {res,json} = await response('/api/estimates?'+search.toString(),environment([],guideRows));
+    assert.equal(res.status,200);
+    assert.equal(json.sample_route,'newmarket_chapain');
+    assert.equal(json.vehicles.find(x=>x.id==='rickshaw').reference?.fare,20);
+    assert.equal(json.vehicles.find(x=>x.id==='auto').reference?.fare,10);
+  }
+});
