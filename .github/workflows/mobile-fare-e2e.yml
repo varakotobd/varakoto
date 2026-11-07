@@ -91,14 +91,25 @@ jobs:
             const healthData=await reportHealth.json();
             console.log('REPORT HEALTH '+JSON.stringify(healthData));
             assert(healthData.submissions_ready===true, 'Fare submissions are disabled by missing server configuration.');
+            assert(healthData.daily_submission_limit===10000, 'Site-wide daily cap is not 10,000');
             const sentReports=[];
             await page.route('**/api/reports',async route=>{
               const payload=JSON.parse(route.request().postData());
               sentReports.push(payload);
-              await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({ok:true,message:'ধন্যবাদ! আপনার ভাড়ার তথ্য যাচাইয়ের জন্য জমা হয়েছে।'})});
+              await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({ok:true,message:'আপনার ডাটা সফলভাবে সাবমিট হয়েছে। যাচাইয়ের পর প্রকাশ করা হবে।'})});
             });
-            await page.locator('#rFrom').fill('সাভার নিউ মার্কেট');
-            await page.locator('#rTo').fill('চাপাইন');
+            await page.locator('#rFrom').fill('সাভার নিউ');
+            await page.waitForTimeout(1400);
+            const reportFromMatches=await page.locator('#rFromList button').allTextContents();
+            console.log('REPORT FROM SUGGESTIONS '+JSON.stringify(reportFromMatches.slice(0,5)));
+            assert(reportFromMatches.some(x=>x.includes('সাভার নিউ মার্কেট')),'Report pickup autocomplete missing');
+            await page.locator('#rFromList button').filter({hasText:'সাভার নিউ মার্কেট'}).first().click();
+            await page.locator('#rTo').fill('চাপা');
+            await page.waitForTimeout(1400);
+            const reportToMatches=await page.locator('#rToList button').allTextContents();
+            console.log('REPORT TO SUGGESTIONS '+JSON.stringify(reportToMatches.slice(0,5)));
+            assert(reportToMatches.some(x=>x.includes('চাপাইন')),'Report destination autocomplete missing');
+            await page.locator('#rToList button').filter({hasText:'চাপাইন'}).first().click();
             await page.locator('#rMode').selectOption('rickshaw');
             await page.locator('#rFare').fill('20');
             await page.locator('#rConsent').check();
@@ -106,6 +117,8 @@ jobs:
             await page.waitForFunction(()=>document.querySelector('#reportStatus')?.textContent.includes('জমা হয়েছে'),{timeout:10000});
             assert(sentReports.length===1 && sentReports[0].fare===20, 'Rickshaw report form did not send the correct fare');
             assert(sentReports[0].fare_basis==='per_ride' && sentReports[0].consent===true, 'Incorrect report terms or consent');
+            assert(Number.isFinite(sentReports[0].origin_lat) && Number.isFinite(sentReports[0].destination_lat),'Selected report suggestions must pass coordinates');
+            assert((await page.locator('#reportStatus').innerText()).includes('আপনার ডাটা সফলভাবে সাবমিট হয়েছে'),'Bengali success message not displayed');
             console.log('RICKSHAW FORM SUCCESS '+JSON.stringify(sentReports[0]));
             await page.locator('#rFrom').fill('সাভার নিউ মার্কেট');
             await page.locator('#rTo').fill('চাপাইন');
