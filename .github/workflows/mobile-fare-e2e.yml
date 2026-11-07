@@ -26,8 +26,20 @@ jobs:
           page.on('pageerror',e=>{pageErrors.push(e.message);console.log('PAGE ERROR: '+e.message)});
           page.on('console',m=>{if(m.type()==='error') console.log('CONSOLE ERROR: '+m.text().slice(0,300))});
           try {
-            const response=await page.goto('https://varakoto.rickshaw.workers.dev/?e2e='+Date.now(),{waitUntil:'domcontentloaded',timeout:30000});
-            assert(response.status()===200,'Homepage HTTP '+response.status());
+            let ready=false;
+            for(let attempt=1;attempt<=12;attempt++){
+              const response=await page.goto('https://varakoto.rickshaw.workers.dev/?e2e='+Date.now()+'&attempt='+attempt,{waitUntil:'domcontentloaded',timeout:30000});
+              assert(response.status()===200,'Homepage HTTP '+response.status());
+              const digest=await page.locator('link[href*="leaflet.css"]').getAttribute('integrity');
+              if(digest==='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='){ ready=true; break; }
+              console.log('Waiting for published map stylesheet update: '+digest);
+              await page.waitForTimeout(3500);
+            }
+            assert(ready,'Cloudflare is still serving an old HTML map stylesheet version.');
+            await page.waitForTimeout(1000);
+            const mapCssLoaded=await page.evaluate(()=>[...document.styleSheets].some(s=>s.href?.includes('leaflet.css')));
+            assert(mapCssLoaded,'Leaflet map stylesheet failed to load (CSP or SRI)');
+            console.log('LEAFLET CSS CONFIRMED');
             await page.locator('#fromInput').fill('সাভার নিউ মার্কেট');
             await page.locator('#toInput').fill('চাপাইন');
             await page.locator('#findButton').click();
