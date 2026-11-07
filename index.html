@@ -107,6 +107,8 @@ a{color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}
 .highlight strong{display:block;margin-bottom:6px;font-size:15px;color:#403820}
 .report-form{border:1px solid #e6ebe3;border-radius:20px;padding:25px;background:#fff;box-shadow:var(--shadow)}
 .report-form h3{font-size:22px;margin:0 0 7px}
+.report-form .report-place-field{position:relative;min-width:0}
+.report-form .report-place-field .suggestions{top:calc(100% + 2px);z-index:300}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .report-form label{display:block;font-weight:850;font-size:13px;margin:15px 0 7px}
 .report-form .check{display:flex;align-items:flex-start;gap:10px;font-size:12px;font-weight:650;color:#536b5c;margin:15px 0}
@@ -353,8 +355,8 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
    <span class="mode-copy">স্থান ও পরিবহন নির্বাচন করে রিপোর্ট পাঠান</span>
    <form id="reportForm">
     <div class="form-grid">
-     <div><label for="rFrom">যাত্রার শুরু</label><div class="input-wrap"><input id="rFrom" minlength="2" maxlength="90" placeholder="যেমন: সাভার বাসস্ট্যান্ড" required></div></div>
-     <div><label for="rTo">গন্তব্য</label><div class="input-wrap"><input id="rTo" minlength="2" maxlength="90" placeholder="যেমন: নবীনগর" required></div></div>
+     <div class="place-field report-place-field"><label for="rFrom">যাত্রার শুরু</label><div class="input-wrap"><input id="rFrom" type="text" minlength="2" maxlength="90" placeholder="যেমন: সাভার নিউ মার্কেট" aria-autocomplete="list" aria-expanded="false" aria-controls="rFromList" autocomplete="off" required></div><ul id="rFromList" class="suggestions" role="listbox" hidden></ul></div>
+     <div class="place-field report-place-field"><label for="rTo">গন্তব্য</label><div class="input-wrap"><input id="rTo" type="text" minlength="2" maxlength="90" placeholder="যেমন: চাপাইন" aria-autocomplete="list" aria-expanded="false" aria-controls="rToList" autocomplete="off" required></div><ul id="rToList" class="suggestions" role="listbox" hidden></ul></div>
      <div><label for="rMode">যানবাহন</label><select id="rMode" required><option value="rickshaw">রিকশা</option><option value="auto">অটো / লেগুনা</option></select></div>
      <div id="rVariantGroup" hidden><label for="rVariant">অটোর ধরন</label><select id="rVariant"><option value="battery_auto">ব্যাটারি অটো</option><option value="leguna">লেগুনা</option></select></div>
      <div><label for="rBasis">ভাড়া কার জন্য?</label><select id="rBasis"><option value="per_ride">পুরো গাড়ির ভাড়া</option><option value="per_person">প্রতি ব্যক্তির ভাড়া</option></select></div>
@@ -791,9 +793,85 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
    $('share').scrollIntoView({behavior:'smooth',block:'start'});
    $('rFare').focus({preventScroll:true});
  });
- for(const [input,type] of [['rFrom','from'],['rTo','to']]){
-   $(input).addEventListener('input',()=>{reportCoordinates[type]=null;});
+ // Report submission has the same place-search suggestions as the journey bar.
+ // Coordinates are recorded only when the visitor chooses a mapped suggestion.
+ function makeReportPlaceHandler(type){
+   const input=$(type==='from'?'rFrom':'rTo');
+   const list=$(type==='from'?'rFromList':'rToList');
+   let timer=null,controller=null;
+   function hide(){
+     list.hidden=true;list.replaceChildren();input.setAttribute('aria-expanded','false');
+   }
+   function render(items){
+     list.replaceChildren();
+     if(!items.length){
+       const li=document.createElement('li');li.className='no-place';
+       li.textContent='ঠিকানা পাওয়া যায়নি। অন্যভাবে লিখতে পারেন।';
+       list.append(li);
+     }
+     for(const place of items){
+       const li=document.createElement('li');
+       const button=document.createElement('button');button.type='button';
+       const icon=document.createElement('span');icon.textContent='📍';
+       const label=document.createElement('span');label.textContent=place.label;
+       if(place.approximate||place.requires_map_pin){
+         const note=document.createElement('small');
+         note.textContent=place.approximate?'এলাকার আনুমানিক পিন':'এখনো নির্দিষ্ট ম্যাপ পিন নেই';
+         label.append(note);
+       }
+       button.append(icon,label);
+       button.addEventListener('click',()=>{
+         input.value=place.label.slice(0,90);
+         reportCoordinates[type]=isCoord(place)?{lat:place.lat,lon:place.lon}:null;
+         hide();
+         if(type==='from'&&!$('rTo').value.trim())$('rTo').focus();
+       });
+       li.append(button);list.append(li);
+     }
+     list.hidden=false;input.setAttribute('aria-expanded','true');
+   }
+   input.addEventListener('input',()=>{
+     reportCoordinates[type]=null;
+     hide();clearTimeout(timer);if(controller)controller.abort();
+     const q=input.value.trim();
+     if(q.length<2)return;
+     timer=setTimeout(async()=>{
+       controller=new AbortController();
+       const loading=document.createElement('li');
+       loading.className='no-place';loading.textContent='লোকেশন খোঁজা হচ্ছে…';
+       list.replaceChildren(loading);list.hidden=false;
+       input.setAttribute('aria-expanded','true');
+       try{
+         const response=await api('/api/places?q='+encodeURIComponent(q),{signal:controller.signal});
+         if(input.value.trim()!==q)return;
+         render(response.locations||[]);
+       }catch(err){
+         if(err.name==='AbortError'||input.value.trim()!==q)return;
+         const li=document.createElement('li');li.className='no-place';
+         li.textContent='সাজেশন পাওয়া যাচ্ছে না। স্থান নিজেও লিখতে পারবেন।';
+         list.replaceChildren(li);list.hidden=false;
+       }
+     },430);
+   });
+   input.addEventListener('keydown',event=>{
+     if(event.key==='Escape'){hide();return;}
+     if(event.key==='ArrowDown'&&!list.hidden){
+       const first=list.querySelector('button');
+       if(first){event.preventDefault();first.focus();}
+     }
+   });
+   list.addEventListener('keydown',event=>{
+     if(event.key==='Escape'){hide();input.focus();}
+   });
+   return {hide};
  }
+ const reportFromHandler=makeReportPlaceHandler('from');
+ const reportToHandler=makeReportPlaceHandler('to');
+ document.addEventListener('pointerdown',event=>{
+   if(!event.target.closest('.report-place-field')){
+     reportFromHandler.hide();reportToHandler.hide();
+   }
+ });
  function syncReportMode(){
    const auto=$('rMode').value==='auto';
    $('rVariantGroup').hidden=!auto;
@@ -846,8 +924,8 @@ a.brand img.vk-brand-logo{display:block;width:62px;height:62px;object-fit:contai
        signal:typeof AbortSignal!=='undefined' && typeof AbortSignal.timeout==='function'
          ? AbortSignal.timeout(15000) : undefined
      });
-     setStatus('reportStatus',result.message||'তথ্য জমা হয়েছে।',false,true);
-     form.reset();$('rDate').value=localToday;reportCoordinates={from:null,to:null};syncReportMode();
+     setStatus('reportStatus',result.message||'আপনার ডাটা সফলভাবে সাবমিট হয়েছে। যাচাইয়ের পর প্রকাশ করা হবে।',false,true);
+     form.reset();$('rDate').value=localToday;reportCoordinates={from:null,to:null};reportFromHandler.hide();reportToHandler.hide();syncReportMode();
    }catch(err){
      const message=err.name==='TimeoutError'||err.name==='AbortError'
        ? 'সার্ভার থেকে উত্তর পেতে দেরি হচ্ছে। ইন্টারনেট সংযোগ দেখে আবার জমা দিন।'
