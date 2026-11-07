@@ -4,16 +4,22 @@ import { readFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
 
 const source = await readFile(new URL('../worker.js', import.meta.url), 'utf8');
+const logoModule = await readFile(new URL('../brand-logo.js', import.meta.url), 'utf8');
+const logoMatch = logoModule.match(/export const logoBase64 = '([^']+)'/);
+assert.ok(logoMatch, 'Official logo data must be available');
+const testLogo = logoMatch[1];
+
 const factory = new Function(
   'html', 'beauty', 'journal', 'about', 'articleCox', 'articleSreemangal',
-  'articleRatargul', 'articleSavar', 'articleFares', 'crypto', 'TextEncoder', 'Response', 'URL',
-  source.replace(/^import\s+\w+\s+from\s+['"][^'"]+['"];?\s*$/gm, '').replace('export default', 'return')
+  'articleRatargul', 'articleSavar', 'articleFares', 'logoBase64', 'atob', 'crypto', 'TextEncoder', 'Response', 'URL',
+  source.replace(/^import\s+.+?\s+from\s+['"][^'"]+['"];?\s*$/gm, '').replace('export default', 'return')
 );
 const worker = factory('<!doctype html><html lang="bn">Vara Koto</html>',
   '<html>সৌন্দর্যের বাংলাদেশ</html>', '<html>ভ্রমণ ব্লগ</html>',
   '<html>আমাদের সম্পর্কে</html>', '<html>কক্সবাজার ভ্রমণ</html>',
   '<html>শ্রীমঙ্গল ভ্রমণ</html>', '<html>রাতারগুল</html>',
   '<html>সাভারের স্থানীয় রুট</html>', '<html>রিকশা ও অটো</html>',
+  testLogo, value => Buffer.from(value, 'base64').toString('binary'),
   webcrypto, TextEncoder, Response, URL);
 
 function environment(rows = [], guideRows = []) {
@@ -255,5 +261,28 @@ test('travel landing and Bangladesh beauty pages link to completed destination s
     assert.ok(journal.includes('/travel-blog/' + slug));
     const article = await readFile(new URL('../articles/' + slug + '.html', import.meta.url), 'utf8');
     assert.ok(article.includes('<article class="article">'));
+  }
+});
+
+test('official uploaded logo is a complete PNG and served from our own domain', async () => {
+  const bytes = Buffer.from(testLogo, 'base64');
+  assert.equal(bytes.length, 3175);
+  assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(bytes.subarray(-8).toString('hex'), '49454e44ae426082');
+  assert.equal(bytes.readUInt32BE(16), 120);
+  const { res } = await response('/brand/logo.png');
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('content-type'), 'image/png');
+  const image = Buffer.from(await res.arrayBuffer());
+  assert.deepEqual(image, bytes);
+});
+test('all nine website pages use the self-hosted logo', async () => {
+  const pages = ['index.html', 'beauty.html', 'travel-blog.html', 'about.html',
+    'articles/coxsbazar.html', 'articles/sreemangal.html', 'articles/ratargul.html',
+    'articles/savar-local.html', 'articles/local-fares.html'];
+  for (const path of pages) {
+    const html = await readFile(new URL('../' + path, import.meta.url), 'utf8');
+    assert.match(html, /<header[\s\S]*?<img[^>]+src="\/brand\/logo\.png"/);
+    assert.match(html, /rel="icon"[^>]+href="\/brand\/logo\.png"/);
   }
 });
