@@ -110,6 +110,14 @@ jobs:
           const status = await health.json();
           if (!health.ok || status.ok !== true || status.submissions_ready !== true) throw new Error('D1 and fare submission are not ready: ' + JSON.stringify(status));
           console.log('D1 database health check passed.');
+          const writeProbe = await get('/api/health?check_submission_sql=1');
+          const writeStatus = await writeProbe.json();
+          console.log('LIVE SUBMISSION SQL PREFLIGHT:',JSON.stringify(writeStatus.write_preflight),JSON.stringify(writeStatus.submission_schema));
+          if(!writeProbe.ok || writeStatus.write_preflight?.fare_report!=='ok' ||
+             writeStatus.write_preflight?.rate_limit!=='ok') {
+            throw new Error('One or both production submission statements cannot compile: '+JSON.stringify(writeStatus));
+          }
+
           const mapHTML = await (await get('/?country-map=' + Date.now())).text();
           if (!mapHTML.includes('id="mapInfo">📍 বাংলাদেশের মানচিত্র')) throw new Error('National map label is absent from homepage.');
           console.log('Bangladesh-wide map label is visible.');
